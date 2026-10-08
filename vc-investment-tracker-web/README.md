@@ -1,57 +1,50 @@
-# Venture Capital Tracker
+# VentureScout
 
-An open-source startup research dashboard with a searchable directory, company
-profiles, investment scorecards, a deal pipeline, and financial comparisons.
+An open-source startup research dashboard with online discovery, personal company lists, research profiles, scorecards, a deal pipeline, and financial comparisons.
 
-This edition uses the included research snapshot: 20 startups, 25 funding rounds,
-and 144 source claims. The data is preserved from the supplied project and is not
-independently verified by this deployment. Google Sheets, Supabase, and Vercel
-are not required.
+## Startup sources
+
+- The dashboard reads current StartupDB company/funding records and TechCrunch funding headlines. Search and paginate 50 companies at a time. Funding data is source-reported, not independently verified here. Funding detail preserves source links and source-check dates.
+- StartupDB facts are reformatted under CC BY 4.0, with attribution and links. Revenue and valuation are not supplied by this API and are explicitly marked unavailable. Funding raised is not revenue or valuation.
+- The original 20-startup dataset is preserved only in `examples/original-research.json`; the website does not load it.
+- Discover searches the public [StartupWho directory](https://www.startupwho.com/startups) one page at a time. Search by keyword or industry and use Next for more results. Results are cached for one hour, fetched when requested, and labeled with retrieval time. An outage may show explicitly labeled cached results up to seven days old. Funding stage and verified financials are not supplied by this source.
+- Sign in to save discovered companies or add your own. There is no application limit of 20 companies. Saved companies also appear in the research directory, scorecards, and pipeline. Source and hosting service capacity still apply.
+
+Discovery does not crawl the whole internet or automatically save new listings. Market records and news refresh on request, cached for 15 minutes; outages can show labeled cached results for up to 24 hours. No background monitoring or alerts are configured. Crunchbase, PitchBook, and Dealroom are not connected.
 
 ## Run locally
 
-Install Node.js 20 or later. There are no third-party dependencies.
+Use Node.js 24 or later (preview and tests use built-in SQLite).
 
 ```sh
-node scripts/serve.mjs
+pnpm install
+pnpm dev
 ```
 
-Open the printed local address. For a quick syntax check:
+Open http://127.0.0.1:3010. Local sign-in creates a development-only identity; it does not authenticate with ChatGPT. This mock runs only in the local preview server, not the production Worker. Preview data stays in ignored `.local/`.
 
 ```sh
-node --check dist/app.js
+pnpm test
+pnpm check
+pnpm build
 ```
 
-## Project layout
+## Project layout and hosting
 
-- `dist/index.html`: page shell and navigation.
-- `dist/app.css`: responsive styles.
-- `dist/app.js`: calculations, views, scorecards, pipeline, and local edits.
-- `dist/data/demo-data.json`: the included research snapshot.
-- `scripts/serve.mjs`: optional local preview server.
+- `public/`: maintained HTML, styles, JavaScript, and application configuration.
+- `src/worker.js`: server-side discovery and owner-scoped company APIs.
+- `src/discovery.js`: StartupWho request normalization and factual listing parser.
+- `src/market.js`: StartupDB API adapter and linked TechCrunch headlines.
+- `db/schema.ts`, `drizzle/`: schema and generated migrations.
+- `scripts/dev.mjs`: local preview with SQLite and development identity.
+- `scripts/build.mjs`: builds a Cloudflare-compatible Worker into ignored `dist/`.
 
-`dist/` contains the maintained source files; it is not generated build output.
-No build step is required. Serve that directory with any static web host.
+The hosted app uses Sites with a D1 binding named `DB` and platform ChatGPT sign-in. Every personal-data query checks the trusted platform user ID; writes also check the request origin. Apply generated migrations before deploying the Worker. Other hosts must provide equivalent trusted authentication, D1, and routing. Never trust a user-supplied identity header on an unprotected standalone server. Google Sheets, Supabase, and Vercel are not required.
 
-## Data and edits
+## Saved data
 
-Scores, evidence notes, and pipeline edits are saved in the current browser's
-local storage. They do not sync between people or devices. Clearing browser data
-removes those edits. Use **Local edits → Copy as CSV** to share or back them up.
-The website label identifies the imported snapshot rather than implying live data.
+Company names, websites, industries, stages, locations, and notes are saved per account in D1. Public visitors can browse online discovery, funding records, and headlines. Scorecard and pipeline edits still use existing browser-local storage and do not sync across devices or people. Use **Local edits → Copy as CSV** to export those changes before clearing browser data. A shared team workspace is not included.
 
-## Work with others
+## Contributions and licensing
 
-Public repository: https://github.com/BagofRamen27/Venture-capital-tracker-
-
-Use issues for bugs and proposed changes, and pull requests for contributions.
-See [CONTRIBUTING.md](CONTRIBUTING.md). Repository owners can invite collaborators
-through GitHub repository settings; other contributors can fork the repository.
-
-## License and data sources
-
-The application code is available under the [MIT license](LICENSE).
-Third-party research, company information, linked sources, and their underlying
-rights remain with their respective owners. The code license does not grant
-rights to third-party source material. Preserve source links and verification
-labels when editing the research data.
+Use issues and pull requests in [the public repository](https://github.com/BagofRamen27/Venture-capital-tracker-). See [CONTRIBUTING.md](CONTRIBUTING.md). Application code is [MIT licensed](LICENSE). Third-party research and source material retain their owners' rights; the code license does not grant rights to that content. Preserve attribution and source links.

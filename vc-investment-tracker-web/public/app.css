@@ -255,3 +255,18 @@ details.raw dd { margin: 0; overflow-wrap: anywhere; }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--bad-soft); border-radius: 5px; padding: 8px 10px; font-size: 14px; }
 @media (prefers-reduced-motion: no-preference) { .fill, .meter > span { transition: width .25s ease; } }
 @media (max-width: 560px) { .topbar { position: static; } .brand { flex-wrap: wrap; gap: 4px 10px; } .brand b { font-size: 16px; } .mode { white-space: nowrap; } .secnav { position: static; } h1 { font-size: 22px; } .kpi .v { font-size: 19px; } .bar-row, .axis { grid-template-columns: 96px 1fr auto; } }
+
+.scout-search { display:grid; grid-template-columns:minmax(160px,1fr) minmax(150px,240px) auto; align-items:end; gap:16px; }
+.scout-search label {display:flex;flex-direction:column;gap:6px;font-weight:500;}
+.scout-search input,.scout-search select {width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);}
+.scout-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px;}
+.scout-card {display:flex;flex-direction:column;gap:10px;margin:0;}
+.scout-card p {margin:0;}.scout-card .row {margin-top:auto;flex-wrap:wrap;gap:10px;}
+.scout-pagination {display:flex;justify-content:center;align-items:center;gap:16px;padding:24px;}
+.link {border:0;padding:0;background:none;color:var(--accent);font:inherit;text-align:left;cursor:pointer;}
+.pagehead {display:flex;justify-content:space-between;gap:20px;align-items:start;margin-bottom:24px;}
+.pagehead p {color:var(--ink-2);}.fieldgrid textarea {min-height:100px;resize:vertical;}
+.btn:disabled {opacity:.55;cursor:not-allowed;}
+@media(max-width:650px){.scout-search{grid-template-columns:1fr}.pagehead{flex-direction:column}.scout-card .row{align-items:start}}
+
+.market-facts{margin:10px 0}.market-facts dt{color:var(--muted);font-size:14px}.market-facts dd{margin:4px 0 12px}.news-list article,.funding-round{padding:16px 0;border-top:1px solid var(--line)}.funding-round p{overflow-wrap:anywhere}.kpi .v{overflow-wrap:anywhere}

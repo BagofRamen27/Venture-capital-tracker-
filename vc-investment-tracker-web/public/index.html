@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <meta name="description" content="Explore startup research, compare funding rounds, score opportunities, and organize your deal pipeline.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%232747a8%22%2F%3E%3Cpath%20d%3D%22M8%2024V16h4v8zm6%200V11h4v13zm6%200V6h4v18z%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E">
-<title>Startup Investment Tracker</title>
+<title>VentureScout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -17,10 +17,12 @@
 <header class="topbar">
   <div class="topbar-in">
     <div class="brandrow">
-      <div class="brand"><b>Startup Investment Tracker</b><span class="mode" id="modebadge" tabindex="0" data-tip="Loading data">Loading…</span></div>
+      <div class="brand"><b>VentureScout</b><span class="mode" id="modebadge" tabindex="0" data-tip="Loading data">Loading…</span></div>
       <button class="logbtn" id="logbtn" type="button">Local edits <span class="n" id="logn">0</span></button>
     </div>
     <nav class="tabs" id="tabs" aria-label="Sections">
+      <button type="button" data-nav="discover">Discover</button>
+      <button type="button" data-nav="tracking">My startups</button>
       <button type="button" data-nav="dashboard">Dashboard</button>
       <button type="button" data-nav="directory">Directory</button>
       <button type="button" data-nav="scorecard">Scorecard</button>
@@ -32,6 +34,7 @@
 <main id="app" aria-live="polite"></main>
 <noscript><p>This tracker needs JavaScript enabled to display the research data.</p></noscript>
 <div id="tip" hidden></div>
+<script src="market.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>
