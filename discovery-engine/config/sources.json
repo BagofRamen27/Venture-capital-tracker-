@@ -66,10 +66,11 @@
       "name": "FinSMEs",
       "type": "rss",
       "group": "funding",
-      "enabled": true,
+      "enabled": false,
       "url": "https://www.finsmes.com/feed",
       "publisher": "FinSMEs",
-      "access_notes": "Public RSS feed. Very high volume of funding headlines."
+      "access_notes": "Public RSS feed. Very high volume of funding headlines.",
+      "disabled_reason": "FinSMEs refused automated access (HTTP 403, first live run on 2026-10-08). Left off to respect the site's access rules; do not try to bypass it."
     },
     {
       "key": "eu_startups",
@@ -86,10 +87,11 @@
       "name": "VentureBeat",
       "type": "rss",
       "group": "news",
-      "enabled": true,
+      "enabled": false,
       "url": "https://venturebeat.com/feed/",
       "publisher": "VentureBeat",
-      "access_notes": "Public RSS feed. Mostly AI/enterprise news; fewer funding headlines."
+      "access_notes": "Public RSS feed. Mostly AI/enterprise news; fewer funding headlines.",
+      "disabled_reason": "VentureBeat rate-limited automated requests (HTTP 429 after retries, first live run on 2026-10-08). Left off; TechCrunch and other feeds cover the same funding news. Re-test later with check-sources."
     },
     {
       "key": "prnewswire_vc",

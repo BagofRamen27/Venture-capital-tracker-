@@ -33,15 +33,15 @@ jobs:
     env:
       COLLECT: ${{ github.event_name != 'push' }}   # a code push only republishes; it does not collect new data
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: discovery-engine/requirements.txt
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
