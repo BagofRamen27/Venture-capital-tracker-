@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Example Funding Feed</title>
+  <link>https://news.example.com/</link>
+  <description>Recorded sample for tests (structure mirrors a WordPress RSS feed)</description>
+  <item>
+    <title>Acme Robotics raises $12M Series A led by Example Ventures</title>
+    <link>https://news.example.com/2026/10/01/acme-robotics-series-a/?utm_source=rss&amp;utm_medium=rss</link>
+    <pubDate>Thu, 01 Oct 2026 14:00:00 +0000</pubDate>
+    <description><![CDATA[<p>Acme Robotics, which builds warehouse picking robots, raised $12 million led by Example Ventures with participation from Sample Capital.</p>]]></description>
+  </item>
+  <item>
+    <title>Paris-based fintech Qonto secures €50 million in Series D funding</title>
+    <link>https://news.example.com/2026/10/02/qonto-series-d/</link>
+    <pubDate>Fri, 02 Oct 2026 09:30:00 +0000</pubDate>
+    <description>The neobank for SMEs closed a new round.</description>
+  </item>
+  <item>
+    <title>Stripe reportedly in talks to raise $1B at a higher valuation</title>
+    <link>https://news.example.com/2026/10/03/stripe-talks/</link>
+    <pubDate>Sat, 03 Oct 2026 10:00:00 +0000</pubDate>
+    <description>People familiar with the matter said talks are ongoing.</description>
+  </item>
+  <item>
+    <title>The week's 10 biggest funding rounds</title>
+    <link>https://news.example.com/2026/10/03/biggest-rounds/</link>
+    <pubDate>Sat, 03 Oct 2026 12:00:00 +0000</pubDate>
+    <description>A weekly roundup.</description>
+  </item>
+  <item>
+    <title>Acme Robotics partners with Example Logistics to deploy robots in 40 warehouses</title>
+    <link>https://news.example.com/2026/10/05/acme-partnership/</link>
+    <pubDate>Mon, 05 Oct 2026 08:00:00 +0000</pubDate>
+    <description>Customer deployment news.</description>
+  </item>
+</channel>
+</rss>

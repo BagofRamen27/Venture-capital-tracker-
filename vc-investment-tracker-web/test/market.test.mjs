@@ -1,20 +1,35 @@
-import {test} from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeDetail,parseNews,marketAPI} from '../src/market.js';
-import {database} from './database.mjs';
-test('funding is not substituted for valuation or revenue; sources and date precision preserved',()=>{
- const d=normalizeDetail({data:{slug:'acme',name:'Acme',fundingTotalRaised:'$5M',fundingHistory:[{eventDate:'2026-10',roundLabel:'Seed',amount:{original:'5000000',currency:'USD'},sourceUrls:['https://example.com/source','javascript:alert(1)']} ]}});
- assert.equal(d.valuation,null);assert.equal(d.revenue,null);assert.equal(d.rounds[0].date,'2026-10');assert.equal(d.rounds[0].amount.value,5000000);assert.equal(d.rounds[0].sources.length,1);
+import { normalizeDetail, fetchMarket, API } from '../src/market.js';
+
+const company = (i) => ({ slug: 'co-' + i, name: 'Company ' + i, websiteUrl: 'https://co' + i + '.test', latestFunding: { roundLabel: 'Seed', amount: { original: '1000000', currency: 'USD' } } });
+
+test('funding is not substituted for valuation or revenue; sources and date precision preserved', () => {
+  const d = normalizeDetail({ data: { slug: 'acme', name: 'Acme', fundingTotalRaised: '$5M', fundingHistory: [{ eventDate: '2026-10', roundLabel: 'Seed', amount: { original: '5000000', currency: 'USD' }, sourceUrls: ['https://example.com/source', 'javascript:alert(1)'] }] } });
+  assert.equal(d.valuation, null); assert.equal(d.revenue, null); assert.equal(d.rounds[0].date, '2026-10');
+  assert.equal(d.rounds[0].amount.value, 5000000); assert.equal(d.rounds[0].sources.length, 1);
 });
-test('RSS keeps linked headlines only and rejects unsafe links',()=>{
- const r=parseNews('<rss><item><title><![CDATA[Funding &amp; growth]]></title><link>https://example.com/news</link><pubDate>Thu, 08 Oct 2026 10:00:00 GMT</pubDate><description>Article body not copied</description></item><item><title>Bad</title><link>javascript:alert(1)</link></item></rss>');
- assert.equal(r.length,1);assert.equal(r[0].title,'Funding & growth');assert.equal(r[0].description,undefined);
+
+test('daily fetch pages through StartupDB, collects details and skips failures', async () => {
+  const calls = [];
+  const fetchImpl = async url => {
+    calls.push(url);
+    if (url.startsWith(API + '?')) {
+      const offset = Number(new URL(url).searchParams.get('offset'));
+      const data = offset === 0 ? Array.from({ length: 50 }, (_, i) => company(i)) : [company(50), { name: 'no slug' }];
+      return Response.json({ data, pagination: { total: 51 } });
+    }
+    if (url.endsWith('/co-1')) return new Response('fail', { status: 500 });
+    const slug = url.split('/').pop();
+    return Response.json({ data: { ...company(slug.slice(3)), slug, fundingHistory: [] } });
+  };
+  const r = await fetchMarket({ pages: 5, detailLimit: 3, fetchImpl, sleep: async () => {} });
+  assert.equal(r.companies.length, 51); // malformed row skipped, stopped after a short page
+  assert.equal(calls.filter(u => u.startsWith(API + '?')).length, 2);
+  assert.deepEqual(Object.keys(r.details), ['co-0', 'co-2']);
+  assert.equal(r.errors.length, 1); assert.equal(r.total, 51); assert.equal(r.license, 'CC BY 4.0');
 });
-test('market paging uses fixed source and fails honestly without sample data',async()=>{
- const DB=database();try{
-  let called;
-  const r=await marketAPI(new Request('https://example.test/api/market?q=acme&offset=50'),DB,async url=>{called=url;return Response.json({data:[],pagination:{offset:50,limit:50,total:0}})});
-  assert.equal(called,'https://startupdb.com/api/v1/startups?limit=50&offset=50&q=acme');assert.equal(r.status,200);
-  const fail=await marketAPI(new Request('https://example.test/api/company/unknown'),DB,async()=>new Response('offline',{status:503}));assert.equal(fail.status,502);assert.equal((await fail.json()).companies,undefined);
- }finally{DB.close();}
+
+test('daily fetch fails loudly when the first page is unavailable (no sample data)', async () => {
+  await assert.rejects(fetchMarket({ fetchImpl: async () => new Response('down', { status: 503 }), sleep: async () => {} }), /HTTP 503/);
 });

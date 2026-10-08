@@ -1,0 +1,162 @@
+{
+  "_comment": "Edit 'enabled' to turn sources on or off. Run `python -m vcdiscovery.cli check-sources` to test each URL before relying on it.",
+  "sources": [
+    {
+      "key": "hackernews",
+      "name": "Hacker News (Show HN / Launch HN)",
+      "type": "hackernews",
+      "group": "community",
+      "enabled": true,
+      "url": "https://hn.algolia.com/api/v1/search_by_date",
+      "publisher": "Hacker News",
+      "access_notes": "Free public API, no key. Run by Algolia for HN. Only titles, links and point counts are stored."
+    },
+    {
+      "key": "sec_form_d",
+      "name": "SEC EDGAR Form D",
+      "type": "sec_form_d",
+      "group": "regulatory",
+      "enabled": true,
+      "url": "https://www.sec.gov/Archives/edgar/daily-index/",
+      "publisher": "U.S. SEC",
+      "access_notes": "Free public data. SEC requires a User-Agent with your name and email and max 10 requests/second (https://www.sec.gov/os/accessing-edgar-data)."
+    },
+    {
+      "key": "techcrunch_funding",
+      "name": "TechCrunch: Funding tag",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "url": "https://techcrunch.com/tag/funding/feed/",
+      "publisher": "TechCrunch",
+      "access_notes": "Public RSS feed. Headlines, links and short summaries only."
+    },
+    {
+      "key": "techcrunch_venture",
+      "name": "TechCrunch: Venture",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "url": "https://techcrunch.com/category/venture/feed/",
+      "publisher": "TechCrunch",
+      "access_notes": "Public RSS feed. Headlines, links and short summaries only."
+    },
+    {
+      "key": "techcrunch_startups",
+      "name": "TechCrunch: Startups",
+      "type": "rss",
+      "group": "news",
+      "enabled": true,
+      "url": "https://techcrunch.com/category/startups/feed/",
+      "publisher": "TechCrunch",
+      "access_notes": "Public RSS feed. Headlines, links and short summaries only."
+    },
+    {
+      "key": "crunchbase_news",
+      "name": "Crunchbase News",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "url": "https://news.crunchbase.com/feed/",
+      "publisher": "Crunchbase News",
+      "access_notes": "Public RSS feed of free articles. The Crunchbase database itself is a paid product and is NOT accessed."
+    },
+    {
+      "key": "finsmes",
+      "name": "FinSMEs",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "url": "https://www.finsmes.com/feed",
+      "publisher": "FinSMEs",
+      "access_notes": "Public RSS feed. Very high volume of funding headlines."
+    },
+    {
+      "key": "eu_startups",
+      "name": "EU-Startups",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "url": "https://www.eu-startups.com/feed/",
+      "publisher": "EU-Startups",
+      "access_notes": "Public RSS feed."
+    },
+    {
+      "key": "venturebeat",
+      "name": "VentureBeat",
+      "type": "rss",
+      "group": "news",
+      "enabled": true,
+      "url": "https://venturebeat.com/feed/",
+      "publisher": "VentureBeat",
+      "access_notes": "Public RSS feed. Mostly AI/enterprise news; fewer funding headlines."
+    },
+    {
+      "key": "prnewswire_vc",
+      "name": "PR Newswire: Venture Capital",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "source_type": "press_release",
+      "url": "https://www.prnewswire.com/rss/financial-services-latest-news/venture-capital-list.rss",
+      "publisher": "PR Newswire",
+      "access_notes": "Public RSS feed of press releases. Press releases are company statements (labelled company_announced)."
+    },
+    {
+      "key": "sifted",
+      "name": "Sifted",
+      "type": "rss",
+      "group": "news",
+      "enabled": false,
+      "url": "https://sifted.eu/feed",
+      "publisher": "Sifted",
+      "disabled_reason": "Feed URL not confirmed. Run check-sources with --include-disabled; enable only if it returns a public feed. Most Sifted articles are paywalled; only feed headlines may be used.",
+      "access_notes": "Do not fetch paywalled article pages."
+    },
+    {
+      "key": "businesswire_tech",
+      "name": "Business Wire",
+      "type": "rss",
+      "group": "funding",
+      "enabled": false,
+      "source_type": "press_release",
+      "url": "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeEFtRXA==",
+      "publisher": "Business Wire",
+      "disabled_reason": "Business Wire feed URLs are generated per topic on businesswire.com (RSS feeds page). Replace this URL with the feed you choose, then enable.",
+      "access_notes": "Public RSS feeds offered by Business Wire."
+    },
+    {
+      "key": "product_hunt",
+      "name": "Product Hunt",
+      "type": "not_implemented",
+      "group": "community",
+      "enabled": false,
+      "url": "https://api.producthunt.com/v2/api/graphql",
+      "publisher": "Product Hunt",
+      "disabled_reason": "Requires a developer token, and Product Hunt's API terms restrict commercial use. Phase 4: add after reviewing the terms.",
+      "access_notes": "Do not scrape producthunt.com pages."
+    },
+    {
+      "key": "reddit",
+      "name": "Reddit",
+      "type": "not_implemented",
+      "group": "community",
+      "enabled": false,
+      "url": "https://www.reddit.com/dev/api",
+      "publisher": "Reddit",
+      "disabled_reason": "Requires a registered Reddit app (OAuth) and acceptance of Reddit's Data API terms. Phase 4.",
+      "access_notes": "Authorized API only."
+    },
+    {
+      "key": "yc_directory",
+      "name": "Y Combinator company directory",
+      "type": "not_implemented",
+      "group": "community",
+      "enabled": false,
+      "url": "https://www.ycombinator.com/companies",
+      "publisher": "Y Combinator",
+      "disabled_reason": "No documented public API. YC launches are captured through 'Launch HN' posts instead.",
+      "access_notes": "Do not scrape."
+    }
+  ]
+}

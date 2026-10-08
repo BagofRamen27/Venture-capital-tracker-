@@ -1,50 +1,59 @@
-# VentureScout
+# VentureScout website
 
-An open-source startup research dashboard with online discovery, personal company lists, research profiles, scorecards, a deal pipeline, and financial comparisons.
+A static website (HTML, CSS and plain JavaScript, no build tools or dependencies) published on GitHub Pages.
+Data files are generated once a day by `.github/workflows/site.yml`; see the [main README](../README.md) for setup.
 
-## Startup sources
+## Sections
 
-- The dashboard reads current StartupDB company/funding records and TechCrunch funding headlines. Search and paginate 50 companies at a time. Funding data is source-reported, not independently verified here. Funding detail preserves source links and source-check dates.
-- StartupDB facts are reformatted under CC BY 4.0, with attribution and links. Revenue and valuation are not supplied by this API and are explicitly marked unavailable. Funding raised is not revenue or valuation.
-- The original 20-startup dataset is preserved only in `examples/original-research.json`; the website does not load it.
-- Discover searches the public [StartupWho directory](https://www.startupwho.com/startups) one page at a time. Search by keyword or industry and use Next for more results. Results are cached for one hour, fetched when requested, and labeled with retrieval time. An outage may show explicitly labeled cached results up to seven days old. Funding stage and verified financials are not supplied by this source.
-- Sign in to save discovered companies or add your own. There is no application limit of 20 companies. Saved companies also appear in the research directory, scorecards, and pipeline. Source and hosting service capacity still apply.
+- **Discover**: companies found automatically by the [discovery engine](../discovery-engine/README.md) in startup news,
+  press releases, Hacker News launches and SEC Form D filings. Each company shows funding evidence labels
+  (SEC filing, corroborated, company-announced, single-source report, target, rumour), a data-confidence rating,
+  a preliminary investment score with the evidence behind each factor, risks, news and source citations.
+- **My startups**: your own list. Add companies by hand or with **Track**. Saved in this browser only; use
+  **Back up** / **Restore backup** to keep or move it.
+- **Dashboard / Financials**: recently funded companies and funding histories from
+  [StartupDB](https://startupdb.com) (CC BY 4.0), plus classified funding headlines.
+- **Directory, Scorecard, Deal pipeline**: research tools for your saved companies (edits stay in this browser;
+  **Local edits → Copy as CSV** exports them).
+- **Data status**: when the data last updated, each source's health, recent runs, and a link to run the update now.
 
-Discovery does not crawl the whole internet or automatically save new listings. Market records and news refresh on request, cached for 15 minutes; outages can show labeled cached results for up to 24 hours. No background monitoring or alerts are configured. Crunchbase, PitchBook, and Dealroom are not connected.
+Missing information is shown as "Not disclosed"; nothing is filled in with sample or estimated values.
+Funding raised is never presented as valuation or revenue.
 
 ## Run locally
 
-Use Node.js 24 or later (preview and tests use built-in SQLite).
+Requires Node.js 20.11 or later. No `npm install` needed.
 
 ```sh
-pnpm install
-pnpm dev
+npm run dev            # http://127.0.0.1:3010
+npm test               # unit tests
+npm run check          # syntax check
+npm run build          # static site in dist/
+npm run update-market  # download today's StartupDB data into public/data/market.json
 ```
 
-Open http://127.0.0.1:3010. Local sign-in creates a development-only identity; it does not authenticate with ChatGPT. This mock runs only in the local preview server, not the production Worker. Preview data stays in ignored `.local/`.
+To see discovered companies locally, run the discovery engine and write its data files:
 
 ```sh
-pnpm test
-pnpm check
-pnpm build
+cd ../discovery-engine
+python -m vcdiscovery.cli run
+python -m vcdiscovery.cli refresh-scores
+python -m vcdiscovery.cli export-site     # writes ../vc-investment-tracker-web/public/data/*.json
 ```
 
-## Project layout and hosting
+Without those files the site still works and shows "Not available yet" for the affected sections.
 
-- `public/`: maintained HTML, styles, JavaScript, and application configuration.
-- `src/worker.js`: server-side discovery and owner-scoped company APIs.
-- `src/discovery.js`: StartupWho request normalization and factual listing parser.
-- `src/market.js`: StartupDB API adapter and linked TechCrunch headlines.
-- `db/schema.ts`, `drizzle/`: schema and generated migrations.
-- `scripts/dev.mjs`: local preview with SQLite and development identity.
-- `scripts/build.mjs`: builds a Cloudflare-compatible Worker into ignored `dist/`.
+## Project layout
 
-The hosted app uses Sites with a D1 binding named `DB` and platform ChatGPT sign-in. Every personal-data query checks the trusted platform user ID; writes also check the request origin. Apply generated migrations before deploying the Worker. Other hosts must provide equivalent trusted authentication, D1, and routing. Never trust a user-supplied identity header on an unprotected standalone server. Google Sheets, Supabase, and Vercel are not required.
+- `public/`: the website (`index.html`, `app.css`, `app.js`, `scout.js`, `market.js`, `data/config.json`).
+- `public/data/*.json` (generated, not committed): `market.json`, `discovery.json`, `news.json`, `status.json`.
+- `src/market.js`: StartupDB adapter used by the daily update.
+- `scripts/`: `dev.mjs` (local preview), `build.mjs` (static build), `update-market.mjs` (daily StartupDB download).
+- `test/`: Node tests.
+- `examples/original-research.json`: the original 20-startup research file (not loaded by the site; can be
+  imported into the discovery engine with `python -m vcdiscovery.cli import-tracker`).
 
-## Saved data
+## License
 
-Company names, websites, industries, stages, locations, and notes are saved per account in D1. Public visitors can browse online discovery, funding records, and headlines. Scorecard and pipeline edits still use existing browser-local storage and do not sync across devices or people. Use **Local edits → Copy as CSV** to export those changes before clearing browser data. A shared team workspace is not included.
-
-## Contributions and licensing
-
-Use issues and pull requests in [the public repository](https://github.com/BagofRamen27/Venture-capital-tracker-). See [CONTRIBUTING.md](CONTRIBUTING.md). Application code is [MIT licensed](LICENSE). Third-party research and source material retain their owners' rights; the code license does not grant rights to that content. Preserve attribution and source links.
+Application code is [MIT licensed](LICENSE). Third-party research and source material keep their owners' rights.
+Preserve attribution and source links.

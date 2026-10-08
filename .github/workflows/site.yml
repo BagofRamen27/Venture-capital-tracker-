@@ -1,0 +1,120 @@
+# Daily: discover startups, refresh StartupDB funding data, and publish the website to GitHub Pages.
+# Free on public repositories. Nothing runs on your computer.
+#
+# One-time setup (repository Settings):
+#   1. Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
+#   2. Settings -> Secrets and variables -> Actions -> New repository secret
+#      Name: VCD_SEC_USER_AGENT   Value: Your Name your.email@example.com   (needed for SEC Form D data)
+#
+# The database is kept between runs on the `discovery-data` branch (one commit, replaced each day).
+name: Update data and publish site
+
+on:
+  schedule:
+    - cron: "17 7 * * *"   # every day at 07:17 UTC
+  workflow_dispatch:        # "Run workflow" button on GitHub
+  push:
+    branches: [main]
+    paths: ["vc-investment-tracker-web/**", "discovery-engine/**", ".github/workflows/site.yml"]
+
+permissions:
+  contents: write   # save the database to the discovery-data branch
+  pages: write
+  id-token: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COLLECT: ${{ github.event_name != 'push' }}   # a code push only republishes; it does not collect new data
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: discovery-engine/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Restore yesterday's data
+        run: |
+          if git fetch --depth 1 origin discovery-data; then
+            git show FETCH_HEAD:vc_discovery.db > discovery-engine/data/vc_discovery.db && echo "Database restored"
+            git show FETCH_HEAD:market.json > vc-investment-tracker-web/public/data/market.json 2>/dev/null \
+              || rm -f vc-investment-tracker-web/public/data/market.json
+          else
+            echo "No saved data yet (first run)"
+          fi
+
+      - name: Install discovery engine
+        run: pip install -r discovery-engine/requirements.txt
+
+      - name: Test
+        run: |
+          (cd discovery-engine && python -m pytest)
+          (cd vc-investment-tracker-web && node --test && npm run check)
+
+      - name: Discover startups (news, Hacker News, SEC Form D)
+        if: env.COLLECT == 'true'
+        working-directory: discovery-engine
+        env:
+          VCD_SEC_USER_AGENT: ${{ secrets.VCD_SEC_USER_AGENT }}
+        run: |
+          python -m vcdiscovery.cli init-db
+          python -m vcdiscovery.cli run
+          python -m vcdiscovery.cli refresh-scores
+
+      - name: Refresh StartupDB funding records
+        if: env.COLLECT == 'true'
+        working-directory: vc-investment-tracker-web
+        run: node scripts/update-market.mjs
+
+      - name: Write website data files
+        working-directory: discovery-engine
+        run: |
+          python -m vcdiscovery.cli init-db
+          python -m vcdiscovery.cli export-site
+          python -m vcdiscovery.cli status
+
+      - name: Save data for the next run
+        if: env.COLLECT == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -c "import sqlite3; c=sqlite3.connect('discovery-engine/data/vc_discovery.db'); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()"
+          state="$RUNNER_TEMP/state"; mkdir -p "$state"
+          cp discovery-engine/data/vc_discovery.db "$state/"
+          [ -f vc-investment-tracker-web/public/data/market.json ] && cp vc-investment-tracker-web/public/data/market.json "$state/"
+          cd "$state"
+          git init -q -b discovery-data
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Data snapshot $(date -u +%F)"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" discovery-data
+
+      - name: Build website
+        working-directory: vc-investment-tracker-web
+        run: node scripts/build.mjs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: vc-investment-tracker-web/dist
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

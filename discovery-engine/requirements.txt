@@ -1,0 +1,16 @@
+# Core (all free, open-source)
+fastapi==0.143.0
+uvicorn[standard]==0.53.0
+SQLAlchemy==2.1.4
+httpx==0.28.1
+feedparser==6.0.14
+APScheduler==3.11.3
+pydantic==2.13.5
+pydantic-settings==2.15.0
+python-multipart==0.0.32
+
+# Testing
+pytest==9.1.1
+
+# Optional: PostgreSQL / Supabase later (uncomment)
+# psycopg[binary]>=3.2
