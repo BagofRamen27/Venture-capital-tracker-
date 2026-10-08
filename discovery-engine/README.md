@@ -7,13 +7,13 @@ A free, self-hosted research engine for your Venture Capital Tracker. It:
 - **deduplicates** repeated articles, syndicated copies and repeated funding announcements
 - **labels evidence honestly**: confirmed, company-announced, reported, target, rumour and regulatory filing are never mixed
 - **scores** each record for *data confidence* (how well-supported it is) and, separately, a *preliminary investment score* with the evidence and missing items listed
-- **serves a REST API** (FastAPI) that your existing dashboard can call
-- **exports** a JSON file in the exact format your current dashboard already reads, plus CSV import and export
+- **writes the website's data files** (`export-site`), which GitHub Actions publishes daily to GitHub Pages
+- **serves an optional REST API** (FastAPI) for local research, plus CSV import and export
 
 > Scores are preliminary research indicators built only from public evidence. They are not
 > investment recommendations, and no predictive accuracy is claimed.
 
-It does not need OpenAI, Anthropic or any other paid API.
+It does not need any paid API or AI service.
 
 ---
 
@@ -39,7 +39,7 @@ Every later session: `cd discovery-engine` and `source .venv/bin/activate` first
 
 ```bash
 python -m vcdiscovery.cli init-db          # creates data/vc_discovery.db
-python -m vcdiscovery.cli import-tracker   # copies your dashboard's 20 researched startups into the database
+python -m vcdiscovery.cli import-tracker   # optional: adds the original 20 researched startups
 python -m vcdiscovery.cli check-sources    # tests each news/SEC source (saves nothing)
 python -m vcdiscovery.cli run              # discovers startups from all enabled sources
 python -m vcdiscovery.cli refresh-scores   # computes investment scores
@@ -55,16 +55,14 @@ python -m vcdiscovery.cli serve --scheduler  # same, plus the daily/weekly jobs
 
 Open **http://127.0.0.1:8000/docs** to see and try every endpoint in your browser.
 
-## 4. Show the data in your existing dashboard (no code changes)
+## 4. Update the website's data
 
 ```bash
-python -m vcdiscovery.cli export-snapshot ../vc-investment-tracker-web/dist/data/demo-data.json
+python -m vcdiscovery.cli export-site      # writes ../vc-investment-tracker-web/public/data/*.json
 ```
 
-This rewrites the file your dashboard already loads, using database records. Your 20 imported startups come
-back with every original field unchanged; newly discovered companies are added with the same columns.
-Back up the original file first if you want to keep it: `cp ../vc-investment-tracker-web/dist/data/demo-data.json demo-data.backup.json`.
-The live way (dashboard reads `GET /api/dashboard/snapshot` directly) is part of the Codex prompt in `docs/CODEX_PROMPT.md`.
+On GitHub this happens automatically every day (`.github/workflows/site.yml`); see the main README for the
+one-time setup. Locally, preview the result with `npm run dev` in `vc-investment-tracker-web/`.
 
 ---
 
@@ -78,10 +76,10 @@ The live way (dashboard reads `GET /api/dashboard/snapshot` directly) is part of
 | `serve [--scheduler] [--port 8000]` | Start the API |
 | `schedule` | Run scheduled jobs in this terminal (Ctrl+C stops) |
 | `refresh-scores` | Recompute investment scores |
-| `import-tracker [PATH]` | Import the dashboard's `demo-data.json` |
+| `import-tracker [PATH]` | Import `vc-investment-tracker-web/examples/original-research.json` |
 | `import-csv FILE` | Import companies from CSV (only `name`/`company_name` is required) |
 | `export-csv [DIR]` | Write `startups.csv`, `funding_rounds.csv`, `sec_filings.csv` |
-| `export-snapshot FILE` | Write dashboard-compatible JSON |
+| `export-site [DIR]` | Write the website data files (discovery.json, news.json, status.json) |
 | `print-schema [--postgres]` | Print the SQL schema |
 | `status` | Record counts and the last 10 jobs |
 
@@ -99,7 +97,7 @@ The live way (dashboard reads `GET /api/dashboard/snapshot` directly) is part of
 | Duplicate review | `GET /api/duplicates`, `POST /api/duplicates/{id}/resolve` |
 | Scoring | `GET/PUT /api/scoring/weights`, `GET/POST /api/startups/{id}/score`, `POST/DELETE /api/startups/{id}/score-override`, `POST /api/scores/refresh` |
 | Automation | `POST /api/discovery/run` (the "Run Discovery" button), `GET /api/jobs`, `GET /api/sources/status`, `GET /api/schedule` |
-| Import/export | `GET /api/export/*.csv`, `POST /api/import/startups`, `GET /api/dashboard/snapshot` |
+| Import/export | `GET /api/export/*.csv`, `POST /api/import/startups` |
 
 ---
 
@@ -179,6 +177,9 @@ the words that triggered it, and tone is never used as investment quality.
 
 ## Scheduling
 
+**For the public website, scheduling is already handled by GitHub Actions** (daily, free, nothing to keep running;
+see `.github/workflows/site.yml`). The options below are only for running the engine on your own computer.
+
 `serve --scheduler` or `schedule` runs (UTC): news 06:00 daily, funding 06:30 daily, SEC 07:00
 daily, Hacker News every 6 h, scores Monday 08:00. A database lock stops the same job from running
 twice at once. If one source is down, it is logged as failed and the others still run.
@@ -217,9 +218,9 @@ records instead of duplicating them. Financial figures you import are stored as 
 ```bash
 python -m pytest
 ```
-58 tests run offline against recorded sample responses in `tests/fixtures/`. They cover parsing,
+59 tests run offline against recorded sample responses in `tests/fixtures/`. They cover parsing,
 extraction, deduplication, rumour handling, conflict flags, SEC matching, failure isolation, scoring rules,
-the API, CSV round-trips, and a check that the dashboard's own data round-trips unchanged.
+the API, CSV round-trips, and the website data export.
 
 ## Troubleshooting
 
@@ -229,7 +230,7 @@ the API, CSV round-trips, and a check that the dashboard's own data round-trips 
 | SEC source "skipped" | Set `VCD_SEC_USER_AGENT=Your Name you@email.com` in `.env` |
 | A source shows `failed` | Run `check-sources`; if the feed moved, update its URL in `config/sources.json` or disable it |
 | HTTP 403 from a source | The site refused automated access. Disable that source; do not try to bypass it |
-| Dashboard can't reach the API (CORS error) | Add your dashboard's address to `VCD_CORS_ORIGINS` and restart `serve` |
+| Browser can't reach the local API (CORS error) | Add the page's address to `VCD_CORS_ORIGINS` and restart `serve` |
 | `401 Missing or wrong X-API-Key` | You set `VCD_API_TOKEN`; send it as the `X-API-Key` header or clear it |
 | Port 8000 already in use | `serve --port 8001` |
 | Want a fresh start | Stop the server and delete `data/vc_discovery.db` |

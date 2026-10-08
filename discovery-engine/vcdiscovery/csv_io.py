@@ -1,4 +1,4 @@
-"""CSV export/import and import of the existing dashboard's `demo-data.json` research snapshot."""
+"""CSV export/import and import of the original 20-startup research file."""
 from __future__ import annotations
 
 import csv
@@ -217,8 +217,8 @@ def _tracker_evidence(status: str | None) -> tuple[str, bool]:
 
 
 def import_tracker_snapshot(session: Session, path: str | Path) -> dict:
-    """Import the dashboard's research snapshot (`dist/data/demo-data.json`). Original rows are kept in
-    `extra` so the dashboard export can reproduce them exactly. Safe to run more than once."""
+    """Import the original research file (`vc-investment-tracker-web/examples/original-research.json`).
+    Original rows are kept in `extra` so nothing from the source file is lost. Safe to run more than once."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     pipeline = {p["startup_id"]: p for p in data.get("pipeline", [])}
     scores = {p["startup_id"]: p for p in data.get("scores", [])}

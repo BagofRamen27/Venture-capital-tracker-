@@ -19,7 +19,6 @@ from .. import __version__
 from ..confidence import compute_confidence
 from ..config import Settings, get_settings
 from ..csv_io import export_filings_csv, export_rounds_csv, export_startups_csv, import_startups_csv
-from ..dashboard_export import build_snapshot
 from ..db import configure, get_db, init_db
 from ..models import (
     EVIDENCE_STATUSES,
@@ -455,10 +454,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         result = import_startups_csv(session, content)
         session.commit()
         return result
-
-    @app.get("/api/dashboard/snapshot", tags=["import/export"])
-    def dashboard_snapshot(session: Session = Depends(get_db), include_demo: bool = False):
-        """Same JSON shape as the dashboard's data/demo-data.json, built from the database."""
-        return build_snapshot(session, settings, include_demo=include_demo)
 
     return app

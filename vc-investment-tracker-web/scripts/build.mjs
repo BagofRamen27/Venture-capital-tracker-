@@ -1,19 +1,16 @@
+/* Builds the static website into dist/ (what GitHub Pages publishes). No server code is involved. */
 import fs from 'node:fs';
 import path from 'node:path';
-const root=path.resolve(import.meta.dirname,'..'),output=path.join(root,'dist');
-if(path.dirname(output)!==root)throw new Error('Invalid build target');
-fs.mkdirSync(path.join(output,'server'),{recursive:true});
-fs.mkdirSync(path.join(output,'.openai'),{recursive:true});
-const assets={};
-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8'};
-function visit(dir,prefix=''){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const rel=prefix+'/'+entry.name,file=path.join(dir,entry.name);if(entry.isDirectory())visit(file,rel);else assets[rel]={body:fs.readFileSync(file,'utf8'),type:types[path.extname(entry.name)]||'text/plain'};}}
-visit(path.join(root,'public'));
-fs.copyFileSync(path.join(root,'src','worker.js'),path.join(output,'server','worker.js'));
-fs.copyFileSync(path.join(root,'src','discovery.js'),path.join(output,'server','discovery.js'));
-fs.copyFileSync(path.join(root,'src','market.js'),path.join(output,'server','market.js'));
-fs.writeFileSync(path.join(output,'server','index.js'),`import {createWorker} from './worker.js';\nexport default createWorker(${JSON.stringify(assets)});\n`);
-const manifest=path.join(root,'.openai','hosting.json');
-if(fs.existsSync(manifest))fs.copyFileSync(manifest,path.join(output,'.openai','hosting.json'));
-else fs.writeFileSync(path.join(output,'.openai','hosting.json'),JSON.stringify({d1:'DB'}));
-fs.cpSync(path.join(root,'drizzle'),path.join(output,'.openai','drizzle'),{recursive:true});
-console.log('Built VentureScout Worker with static assets and database migrations.');
+
+const root = path.resolve(import.meta.dirname, '..');
+const output = path.join(root, 'dist');
+if (path.dirname(output) !== root) throw new Error('Invalid build target');
+fs.rmSync(output, { recursive: true, force: true });
+fs.cpSync(path.join(root, 'public'), output, { recursive: true });
+fs.writeFileSync(path.join(output, '.nojekyll'), ''); // serve files as-is on GitHub Pages
+for (const required of ['index.html', 'app.js', 'scout.js', 'market.js', 'app.css', 'data/config.json']) {
+  if (!fs.existsSync(path.join(output, required))) throw new Error('Missing ' + required);
+}
+const data = ['market.json', 'discovery.json', 'news.json', 'status.json'].filter(f => !fs.existsSync(path.join(output, 'data', f)));
+if (data.length) console.warn('Note: no ' + data.join(', ') + ' yet; the site shows "not available yet" for those sections.');
+console.log('Built static site in dist/');

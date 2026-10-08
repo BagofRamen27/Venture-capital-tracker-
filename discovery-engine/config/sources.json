@@ -22,6 +22,16 @@
       "access_notes": "Free public data. SEC requires a User-Agent with your name and email and max 10 requests/second (https://www.sec.gov/os/accessing-edgar-data)."
     },
     {
+      "key": "techcrunch_funding",
+      "name": "TechCrunch: Funding tag",
+      "type": "rss",
+      "group": "funding",
+      "enabled": true,
+      "url": "https://techcrunch.com/tag/funding/feed/",
+      "publisher": "TechCrunch",
+      "access_notes": "Public RSS feed. Headlines, links and short summaries only."
+    },
+    {
       "key": "techcrunch_venture",
       "name": "TechCrunch: Venture",
       "type": "rss",

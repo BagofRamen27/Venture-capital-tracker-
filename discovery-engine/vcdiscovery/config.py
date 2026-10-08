@@ -33,7 +33,6 @@ class Settings(BaseSettings):
 
     sources_file: str = "config/sources.json"
     scoring_file: str = "config/scoring.json"
-    dashboard_settings_file: str = "config/dashboard_settings.json"
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     # Optional shared secret. When set, every write request needs the header `X-API-Key`.

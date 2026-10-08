@@ -1,15 +1,18 @@
 import json
 
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
 from tests.conftest import REPO_ROOT
 from tests.test_pipeline import ingest, news
 from vcdiscovery import db
 from vcdiscovery.api import create_app
 from vcdiscovery.csv_io import import_tracker_snapshot
-from vcdiscovery.dashboard_export import build_snapshot
+from vcdiscovery.models import FundingRound, Startup
+from vcdiscovery.scoring import load_config, refresh_scores
+from vcdiscovery.site_export import write_site_data
 
-TRACKER_JSON = REPO_ROOT / "vc-investment-tracker-web" / "dist" / "data" / "demo-data.json"
+TRACKER_JSON = REPO_ROOT / "vc-investment-tracker-web" / "examples" / "original-research.json"
 
 
 def client_for(settings):
@@ -70,25 +73,34 @@ def test_run_discovery_endpoint_starts_background_job(settings, monkeypatch):
     assert r.status_code == 202 and calls[0]["groups"] == ["funding"]
 
 
-def test_tracker_import_round_trips_into_dashboard_snapshot(settings):
-    original = json.loads(TRACKER_JSON.read_text(encoding="utf-8"))
+def test_tracker_import_is_idempotent(settings):
     with db.session_scope() as s:
         assert import_tracker_snapshot(s, TRACKER_JSON)["created"] == 20
     with db.session_scope() as s:
         assert import_tracker_snapshot(s, TRACKER_JSON)["updated"] == 20  # re-import updates, never duplicates
-    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/1")])
     with db.session_scope() as s:
-        snap = build_snapshot(s, settings)
-    assert snap["settings"] == original["settings"]
-    by_id = {r["startup_id"]: r for r in snap["startups"]}
-    for row in original["startups"]:
-        exported = by_id[row["startup_id"]]
-        assert {k: exported[k] for k in row} == row  # every original field unchanged
-    assert len([r for r in snap["rounds"] if r["round_id"].startswith("RND-")]) == len(original["rounds"])
-    assert len([c for c in snap["claims"] if c["claim_id"].startswith("CLM-")]) == len(original["claims"])
-    new = next(r for r in snap["startups"] if r["company_name"] == "Acme Robotics")
-    assert set(original["startups"][0]) <= set(new)  # same keys as the dashboard expects
-    acme_rounds = [r for r in snap["rounds"] if r["startup_id"] == new["startup_id"]]
-    assert acme_rounds[0]["is_current_round"] == "Yes" and acme_rounds[0]["capital_raised_usd"] == "12000000"
-    for key in ("pipeline", "scores"):
-        assert len(snap[key]) == 21
+        assert s.scalar(select(func.count(Startup.id))) == 20
+        original = json.loads(TRACKER_JSON.read_text(encoding="utf-8"))
+        assert s.scalar(select(func.count(FundingRound.id))) == len(original["rounds"])
+
+
+def test_site_export_writes_website_data(settings, tmp_path):
+    ingest(settings, [news("Acme Robotics raises $12M Series A led by Example Ventures", "https://a.example/1"),
+                      news("Acme Robotics lays off 5% of staff", "https://a.example/2")])
+    with db.session_scope() as s:
+        refresh_scores(s, load_config(s, settings.load_json(settings.scoring_file)))
+    with db.session_scope() as s:
+        paths = write_site_data(s, settings, tmp_path)
+    assert sorted(p.name for p in paths) == ["discovery.json", "news.json", "status.json"]
+    discovery = json.loads((tmp_path / "discovery.json").read_text())
+    acme = discovery["companies"][0]
+    assert acme["name"] == "Acme Robotics"
+    assert acme["funding_rounds"][0]["evidence_status"] == "reported"
+    assert acme["score"]["thesis"] and "not investment recommendations" in discovery["disclaimer"]
+    assert {f["key"] for f in discovery["factors"]} >= {"market_opportunity", "growth_momentum"}
+    news_file = json.loads((tmp_path / "news.json").read_text())
+    layoffs = next(a for a in news_file["articles"] if "lays off" in a["title"])
+    assert "layoffs" in layoffs["event_types"] and layoffs["companies"] == ["Acme Robotics"]
+    status = json.loads((tmp_path / "status.json").read_text())
+    assert status["counts"]["companies"] == 1
+    assert {x["key"] for x in status["sources"]} >= {"hackernews", "sec_form_d", "techcrunch_funding"}

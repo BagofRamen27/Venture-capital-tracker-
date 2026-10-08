@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import sys
 from pathlib import Path
@@ -101,7 +100,7 @@ def cmd_import_tracker(args):
     from .csv_io import import_tracker_snapshot
 
     _setup()
-    path = Path(args.path) if args.path else BASE_DIR.parent / "vc-investment-tracker-web" / "dist" / "data" / "demo-data.json"
+    path = Path(args.path) if args.path else BASE_DIR.parent / "vc-investment-tracker-web" / "examples" / "original-research.json"
     with session_scope() as session:
         print(import_tracker_snapshot(session, path))
 
@@ -128,14 +127,13 @@ def cmd_export_csv(args):
     print(f"Wrote startups.csv, funding_rounds.csv and sec_filings.csv to {out.resolve()}")
 
 
-def cmd_export_snapshot(args):
-    from .dashboard_export import build_snapshot
+def cmd_export_site(args):
+    from .site_export import write_site_data
 
     settings = _setup()
     with session_scope() as session:
-        snap = build_snapshot(session, settings)
-    Path(args.path).write_text(json.dumps(snap, indent=1, ensure_ascii=False), encoding="utf-8")
-    print(f"Wrote {len(snap['startups'])} startups, {len(snap['rounds'])} rounds, {len(snap['claims'])} claims to {args.path}")
+        for path in write_site_data(session, settings, args.directory):
+            print(f"Wrote {path}")
 
 
 def cmd_print_schema(_args):
@@ -187,8 +185,8 @@ def main(argv: list[str] | None = None) -> None:
     p.set_defaults(func=cmd_serve)
     sub.add_parser("schedule", help="Run the scheduler in this terminal").set_defaults(func=cmd_schedule)
     sub.add_parser("refresh-scores", help="Recompute investment scores").set_defaults(func=cmd_refresh_scores)
-    p = sub.add_parser("import-tracker", help="Import the dashboard's demo-data.json research snapshot")
-    p.add_argument("path", nargs="?", help="Default: ../vc-investment-tracker-web/dist/data/demo-data.json")
+    p = sub.add_parser("import-tracker", help="Import the original 20-startup research file")
+    p.add_argument("path", nargs="?", help="Default: ../vc-investment-tracker-web/examples/original-research.json")
     p.set_defaults(func=cmd_import_tracker)
     p = sub.add_parser("import-csv", help="Import companies from a CSV file")
     p.add_argument("path")
@@ -196,9 +194,9 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("export-csv", help="Export startups, funding rounds and SEC filings to CSV")
     p.add_argument("directory", nargs="?", default="exports")
     p.set_defaults(func=cmd_export_csv)
-    p = sub.add_parser("export-snapshot", help="Write a dashboard-compatible JSON snapshot")
-    p.add_argument("path")
-    p.set_defaults(func=cmd_export_snapshot)
+    p = sub.add_parser("export-site", help="Write the website's data files (discovery.json, news.json, status.json)")
+    p.add_argument("directory", nargs="?", default=str(BASE_DIR.parent / "vc-investment-tracker-web" / "public" / "data"))
+    p.set_defaults(func=cmd_export_site)
     p = sub.add_parser("print-schema", help="Print the SQL schema")
     p.add_argument("--postgres", action="store_true")
     p.set_defaults(func=cmd_print_schema)

@@ -4,7 +4,7 @@ function boot(D, SOURCE) {
 (function () {
   const b = document.getElementById("modebadge");
   b.textContent = "Research & personal tracking";
-  b.setAttribute("data-tip", "Current online discovery and your saved companies. Scores and pipeline edits stay in this browser.");
+  b.setAttribute("data-tip", "Discovery and funding data refresh daily. Your saved companies, scores and pipeline edits stay in this browser.");
 })();
 const S = D.settings, T = S.thresholds, W = S.weights;
 const CRIT = S.criteria.map(c => ({ key: c[0], name: c[1], r1: c[2], r3: c[3], r5: c[4], ev: c[5] }));
@@ -226,7 +226,7 @@ let route = { view: "dashboard", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
   if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
-  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking"].includes(h)) return { view: h };
+  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status"].includes(h)) return { view: h };
   return { view: "dashboard" };
 }
 function go(view, id) {
@@ -244,7 +244,7 @@ function render() {
   tip.hidden = true;
   const active = route.view === "profile" ? "directory" : route.view;
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking }[route.view];
+  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus }[route.view];
   $("#app").innerHTML = v(route.id);
   document.title = route.view === "profile" ? BYID[route.id].company_name + " · VentureScout" : "VentureScout";
   updateLogCount();
@@ -801,67 +801,145 @@ document.addEventListener("dragover", e => { const col = e.target.closest?.("[da
 document.addEventListener("dragleave", e => { const col = e.target.closest?.("[data-stage]"); if (col && !col.contains(e.relatedTarget)) col.classList.remove("drop"); });
 document.addEventListener("drop", e => { const col = e.target.closest?.("[data-stage]"); if (!col) return; e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (BYID[id] && setField("Deal Pipeline", id, "pipeline_stage", col.dataset.stage)) { render(); toast(BYID[id].company_name + " moved to " + col.dataset.stage); } else render(); });
 
-const STAGES = ['Not disclosed','Pre-seed','Seed','Series A','Series B','Series C+','Growth','Bootstrapped'];
-const INDUSTRIES = ['B2B','Fintech','Consumer','Healthcare','Education','Industrials','Real Estate','Other'];
-const SCOUT = { q:'',industry:'',page:1,result:null,loading:false,error:'',loaded:false,form:null,saveError:'',saving:false,stageFilter:'' };
-const account = window.ventureAccount || {signedIn:false,companies:[],error:''};
-const options = (items,current) => items.map(x=>`<option value="${esc(x)}" ${x===current?'selected':''}>${esc(x)}</option>`).join('');
-const marketUI=window.createMarketUI({esc,render:()=>render(),count:()=>account.companies.length,track:c=>{if(!account.signedIn){go('tracking');return;}SCOUT.form={...c};SCOUT.saveError='';go('tracking');}});
-const signIn = () => `<a class="btn primary" target="_top" href="/signin-with-chatgpt?return_to=${encodeURIComponent('/#tracking')}">Sign in to save startups</a>`;
-function viewDiscover() {
-  if(!SCOUT.loaded&&!SCOUT.loading)queueMicrotask(loadDiscovery);
-  const result=SCOUT.result;
-  return `<div class="pagehead"><div><h1>Discover startups</h1><p>Find companies online and build your own research list.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
-  <form id="discover-form" class="panel scout-search"><label>Company or keyword<input name="q" placeholder="AI, robotics, climate…" value="${esc(SCOUT.q)}" maxlength="100"></label><label>Industry<select name="industry"><option value="">All industries</option>${options(INDUSTRIES,SCOUT.industry)}</select></label><button class="btn primary" ${SCOUT.loading?'disabled':''}>Search online</button></form>
-  <p class="note">Listings from <a href="https://www.startupwho.com/" target="_blank" rel="noopener">StartupWho</a>. Results refresh as you browse, with up to one hour of caching. This source does not supply funding stage or verified financials; add a stage after saving a company.</p>
-  ${SCOUT.loading?'<div class="panel" role="status">Finding companies…</div>':''}
-  ${SCOUT.error?`<div class="panel" role="alert">${esc(SCOUT.error)} <button class="btn" id="discover-retry">Retry</button> <a href="https://www.startupwho.com/startups" target="_blank" rel="noopener">Open source directory</a></div>`:''}
-  ${result?`<div class="ph"><p>${result.total==null?'':esc(result.total.toLocaleString())+' source results · '}Page ${result.page}${result.stale?' · Showing saved results; source is unavailable':''}</p><span class="muted">Retrieved ${esc(new Date(result.fetchedAt).toLocaleString())}</span></div>
-  <div class="scout-grid">${result.companies.map((c,i)=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry||'Other')}</span><h2>${esc(c.name)}</h2><p>${esc(c.location||'Location not supplied')}</p><p class="muted">Funding stage: not disclosed</p><div class="row">${c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Company website</a>`:'Website not supplied'}<button type="button" class="btn primary" data-track="${i}" ${!c.website||isTracked(c.website)?'disabled':''}>${isTracked(c.website)?'Tracked':'Track company'}</button></div></article>`).join('')||'<div class="panel empty">No companies match. Try another keyword or industry.</div>'}</div>
-  <div class="scout-pagination"><button class="btn" data-discover-page="${result.page-1}" ${result.page<=1||SCOUT.loading?'disabled':''}>Previous</button><span>Page ${result.page}</span><button class="btn" data-discover-page="${result.page+1}" ${!result.hasNext||SCOUT.loading?'disabled':''}>Next</button></div>`:''}`;
+const VS = window.VentureScout;
+const STAGES = VS.STAGES;
+const SCOUT = { form:null,saveError:'',stageFilter:'',importMsg:'' };
+const DISC = { data:null,status:null,error:'',statusError:'',loading:false,loaded:false,selected:null,f:{q:'',industry:'',stage:'',evidence:'',minConfidence:'',minScore:'',sort:'newest'},limit:60 };
+const account = window.ventureAccount || {companies:[],error:''};
+const options = (items,current,labels={}) => items.map(x=>`<option value="${esc(x)}" ${x===current?'selected':''}>${esc(labels[x]||x)}</option>`).join('');
+const marketUI=window.createMarketUI({esc,render:()=>render(),count:()=>account.companies.length,track:c=>startTracking(c)});
+function startTracking(c) {
+  if(!c){toast('Company details are not available.');return;}
+  SCOUT.form={name:c.name||'',website:c.website||'',industry:c.industry||'',location:c.location||c.headquarters||'',stage:STAGES.includes(c.stage||c.funding_stage)?(c.stage||c.funding_stage):'Not disclosed',notes:c.description||'',source:c.source||'VentureScout discovery',sourceURL:c.sourceURL||c.primary_source_url||''};
+  SCOUT.saveError='';go('tracking');
 }
-function isTracked(website) {try {const host=new URL(website).hostname.replace(/^www\./,'');return account.companies.some(c=>new URL(c.website).hostname.replace(/^www\./,'')===host);}catch{return false;}}
-async function loadDiscovery() {
-  if(SCOUT.loading)return;
-  SCOUT.loading=true;SCOUT.loaded=true;SCOUT.error='';
-  if(route.view==='discover')render();
-  try {const query=new URLSearchParams({q:SCOUT.q,industry:SCOUT.industry,page:String(SCOUT.page)});const r=await fetch('/api/discover?'+query,{signal:AbortSignal.timeout(16000)});const j=await r.json();if(!r.ok)throw new Error(j.error||'Discovery is unavailable.');SCOUT.result=j;}
-  catch(e){SCOUT.error=e.name==='TimeoutError'?'The source took too long to respond. Try again.':e.message;}
-  finally{SCOUT.loading=false;if(route.view==='discover')render();}
+const GITHUB_ACTIONS='https://github.com/BagofRamen27/Venture-capital-tracker-/actions/workflows/site.yml';
+const EVIDENCE_LABEL={regulatory_filing:'SEC filing',confirmed:'Corroborated',company_announced:'Company-announced',reported:'Reported (1 source)',analyst_entered:'Analyst-entered',target:'Target (not raised)',rumor:'Rumour (unconfirmed)'};
+const evBadge=st=>st?`<span class="b ${st==='confirmed'||st==='regulatory_filing'?'b-ok':st==='rumor'||st==='target'?'b-conf':'b-unv'}" tabindex="0" data-tip="${esc(DISC.data?.evidence_statuses?.[st]||'')}">${esc(EVIDENCE_LABEL[st]||st)}</span>`:'';
+const confB=c=>c?.label?`<span class="b b-${esc(c.label.toLowerCase())}" tabindex="0" data-tip="Data confidence ${esc(c.score)}/100: how well-supported this record is, not investment quality">${esc(c.label)} confidence</span>`:'';
+const scoreB=s=>s?.total!=null?`<span class="b b-plain" tabindex="0" data-tip="Preliminary research indicator (coverage ${Math.round((s.coverage||0)*100)}% of weights). Not an investment recommendation.">Score ${esc(s.total)} · ${esc(s.rating)}</span>`:'';
+const FLAG_TEXT={conflicting_funding:'Conflicting funding figures',possible_duplicate:'Possible duplicate',stale:'Stale information',name_collision:'Similar name to another company'};
+async function loadDiscoveryData() {
+  if(DISC.loading||DISC.loaded)return;
+  DISC.loading=true;
+  const get=async f=>{const r=await fetch('data/'+f,{cache:'no-cache'});if(r.status===404)throw new Error('Not available yet: the first daily update has not run.');if(!r.ok)throw new Error('Could not load '+f+'.');return r.json();};
+  const [d,s]=await Promise.allSettled([get('discovery.json'),get('status.json')]);
+  if(d.status==='fulfilled')DISC.data=d.value;else DISC.error=d.reason.message;
+  if(s.status==='fulfilled')DISC.status=s.value;else DISC.statusError=s.reason.message;
+  DISC.loading=false;DISC.loaded=true;if(['discover','status'].includes(route.view))render();
+}
+function viewDiscover() {
+  queueMicrotask(loadDiscoveryData);
+  const all=DISC.data?.companies||[], f=DISC.f;
+  const rows=VS.filterDiscovery(all,f);
+  const uniq=k=>[...new Set(all.map(c=>c[k]).filter(Boolean))].sort();
+  const sel=all.find(c=>c.id===DISC.selected);
+  return `<div class="pagehead"><div><span class="eyebrow">Automated discovery</span><h1>Discovered startups</h1><p>Companies found in startup news, press releases, Hacker News launches and SEC Form D filings. Updated daily.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
+  ${DISC.loading?'<div class="panel" role="status">Loading discovered companies…</div>':''}
+  ${DISC.error?`<div class="panel" role="alert">${esc(DISC.error)} <a href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Open the daily update</a></div>`:''}
+  ${DISC.data?`<p class="note">Updated ${esc(new Date(DISC.data.generated_at+'Z').toLocaleString())}. ${esc(DISC.data.disclaimer)}</p>
+  ${sel?discoveredProfile(sel):''}
+  <form id="disc-filters" class="panel fieldgrid">
+    <label>Search<input name="q" value="${esc(f.q)}" placeholder="Name, industry, city…" maxlength="100"></label>
+    <label>Industry<select name="industry"><option value="">All</option>${options(uniq('industry'),f.industry)}</select></label>
+    <label>Funding stage<select name="stage"><option value="">All</option>${options(uniq('funding_stage'),f.stage)}</select></label>
+    <label>Funding evidence<select name="evidence"><option value="">All</option>${options(Object.keys(EVIDENCE_LABEL),f.evidence,EVIDENCE_LABEL)}</select></label>
+    <label>Min. data confidence<select name="minConfidence">${options(['','45','70'],f.minConfidence,{'':'Any','45':'Medium or higher','70':'High'})}</select></label>
+    <label>Min. score<select name="minScore">${options(['','45','60','75'],f.minScore,{'':'Any','45':'45+','60':'60+','75':'75+'})}</select></label>
+    <label>Sort by<select name="sort">${options(['newest','score','confidence','funding','name'],f.sort,{newest:'Newest discovered',score:'Investment score',confidence:'Data confidence',funding:'Latest funding amount',name:'Name'})}</select></label>
+  </form>
+  <p>${rows.length.toLocaleString()} of ${all.length.toLocaleString()} companies</p>
+  <div class="scout-grid">${rows.slice(0,DISC.limit).map(c=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry||'Industry not identified')} · ${esc(c.funding_stage||'Stage not disclosed')}</span><h2><button class="link" data-disc="${c.id}">${esc(c.name)}</button></h2>
+    <p>${esc(c.headquarters||'Location not disclosed')}${c.founded_year?' · Founded '+esc(c.founded_year):''}</p>
+    ${c.description?`<p class="muted">${esc(c.description)}</p>`:''}
+    ${fundingLine(c)}
+    <div class="badges">${confB(c.confidence)}${scoreB(c.investment_score)}${(c.flags||[]).map(x=>`<span class="b b-conf">${esc(FLAG_TEXT[x]||x)}</span>`).join('')}</div>
+    <p class="muted small">Found via ${esc(c.discovered_via||'unknown')} · ${esc(c.first_discovered_at?new Date(c.first_discovered_at+'Z').toLocaleDateString():'')}</p>
+    <div class="row"><button class="btn primary" data-disc="${c.id}">Research</button><button class="btn" data-disc-track="${c.id}">Track</button>${c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Website</a>`:''}</div></article>`).join('')||'<div class="panel empty">No companies match these filters.</div>'}</div>
+  ${rows.length>DISC.limit?`<div class="scout-pagination"><button class="btn" id="disc-more">Show more</button></div>`:''}`:''}`;
+}
+function fundingLine(c) {
+  if(c.latest_funding.amount!=null)return `<p>Latest funding: <b>${esc(c.latest_funding.display)}</b> ${evBadge(c.latest_funding.evidence_status)}</p>`;
+  const r=c.funding_rounds.find(x=>x.amount!=null);
+  return r?`<p>Funding mentioned: <b>${esc(r.amount_display)}</b> ${evBadge(r.evidence_status)}</p>`:'<p>Latest funding: <b>Not disclosed</b></p>';
+}
+function discoveredProfile(c) {
+  const sc=c.score;
+  const link=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>`:esc(t);
+  return `<section class="panel" id="disc-profile"><div class="ph"><div><span class="eyebrow">${esc(c.industry||'Industry not identified')} · ${esc(c.review_status)}</span><h2>${esc(c.name)}</h2></div><div class="controls"><button class="btn primary" data-disc-track="${c.id}">Track</button><button class="btn" id="disc-close">Close</button></div></div>
+  <div class="badges">${confB(c.confidence)}${scoreB(c.investment_score)}${(c.flags||[]).map(x=>`<span class="b b-conf">${esc(FLAG_TEXT[x]||x)}</span>`).join('')}</div>
+  <dl class="market-facts">
+    <dt>Website</dt><dd>${c.website?link(c.website,c.website):'Not identified'}</dd>
+    <dt>Headquarters · founded</dt><dd>${esc(c.headquarters||'Not disclosed')} · ${esc(c.founded_year||'Not disclosed')}</dd>
+    <dt>Founders</dt><dd>${esc(c.founders||'Not disclosed')}</dd>
+    ${c.key_people?`<dt>Executives listed on SEC filing</dt><dd>${esc(c.key_people)}</dd>`:''}
+    <dt>Investors named in sources</dt><dd>${esc((c.investors||[]).join(', ')||'Not disclosed')}</dd>
+    <dt>Total funding</dt><dd>${esc(c.total_funding.display)}<div class="small muted">${esc(c.total_funding.basis||'')}</div></dd>
+    <dt>Valuation · revenue</dt><dd>${esc(c.valuation.display)} · ${esc(c.revenue.display)}</dd>
+  </dl>
+  ${sc?`<h3>Preliminary thesis</h3><p>${esc(sc.thesis)}</p>${sc.risks?.length?`<h3>Risks and gaps</h3><ul>${sc.risks.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>`:''}
+  <h3>Investment score: ${sc.total??'not scored'} <span class="muted small">(${esc(sc.rating)}, ${Math.round(sc.coverage*100)}% of weights scorable)</span></h3>
+  <div class="tw"><table><thead><tr><th>Factor</th><th class="r">Weight</th><th class="r">Score</th><th>Evidence or reason</th></tr></thead><tbody>${sc.factors.map(x=>`<tr><td>${esc(x.label)}<div class="small muted">${esc(x.method)}</div></td><td class="r">${esc(x.weight)}%</td><td class="r">${x.score==null?'<span class="na">Unscorable</span>':esc(x.score)}${x.override?'<div class="small">analyst</div>':''}</td><td>${x.evidence.length?x.evidence.map(e=>`<div>${link(e.url,e.text)}</div>`).join(''):`<span class="muted">${esc(x.unscorable_reason||'')}</span>`}</td></tr>`).join('')}</tbody></table></div>
+  <p class="note">${esc(sc.disclaimer)}</p>`:''}
+  <h3>Funding history</h3>${c.funding_rounds.length?c.funding_rounds.map(r=>`<article class="funding-round"><h3>${esc(r.round_type||'Round not specified')} · ${esc(r.amount_display)} ${evBadge(r.evidence_status)}${r.conflict?' <span class="b b-conf">Conflict</span>':''}</h3><p>${esc(r.announced_date||'Date not supplied')}${r.publishers?.length?' · '+r.publishers.map(esc).join(', '):''}</p>${r.investors.length?`<p>${r.investors.map(i=>esc(i.name)+(i.is_lead?' (lead)':'')).join(', ')}</p>`:''}${r.conflict_note?`<p class="warnline">${esc(r.conflict_note)}</p>`:''}<p>${link(r.source_url,'Source')}</p></article>`).join(''):'<p class="muted">No funding information found.</p>'}
+  ${c.sec_filings.length?`<h3>SEC filings</h3>${c.sec_filings.map(f=>`<article class="funding-round"><p>${link(f.filing_url,'Form '+f.form_type+' · '+(f.filing_date||''))} · ${esc(f.issuer_name)} · sold ${f.total_amount_sold==null?'not stated':'$'+Number(f.total_amount_sold).toLocaleString()} of ${f.offering_amount_indefinite?'an indefinite amount':f.total_offering_amount==null?'not stated':'$'+Number(f.total_offering_amount).toLocaleString()}${f.investor_count!=null?' · '+esc(f.investor_count)+' investors':''}</p>${(f.review_flags||[]).map(x=>`<p class="small warnline">${esc(x)}</p>`).join('')}<p class="small muted">${esc(f.disclaimer)}</p></article>`).join('')}`:''}
+  ${c.news.length?`<h3>News</h3><div class="news-list">${c.news.map(a=>`<article>${link(a.url,a.title)}<p class="muted small">${esc(a.publisher||'')} · ${esc(a.published_at?new Date(a.published_at+'Z').toLocaleDateString():'')} · ${a.event_types.map(esc).join(', ')||'no event tags'} · tone: ${esc(a.sentiment)}${(a.classification_evidence?.positive_terms||[]).length||(a.classification_evidence?.negative_terms||[]).length?' ('+[...(a.classification_evidence.positive_terms||[]),...(a.classification_evidence.negative_terms||[])].map(esc).join(', ')+')':''}</p></article>`).join('')}</div><p class="note">Tone describes the wording of a headline, not investment quality.</p>`:''}
+  <h3>Sources and citations</h3><ul>${c.citations.map(x=>`<li>${esc(x.field)}: ${esc(x.value||'')} ${evBadge(x.evidence_status)}${x.is_estimate?' <span class="b b-plain">algorithmic estimate</span>':''} · ${link(x.source_url,x.publisher||'source')} <span class="small muted">retrieved ${esc(x.retrieved_at?.slice(0,10)||'')}</span></li>`).join('')||'<li>No citations recorded.</li>'}</ul>
+  <details><summary>Data confidence breakdown (${esc(c.confidence.score)}/100)</summary><ul>${(c.confidence_breakdown?.components||[]).map(p=>`<li>${esc(p.component)}: ${p.points>0?'+':''}${esc(p.points)} — ${esc(p.explanation)}</li>`).join('')}</ul></details></section>`;
+}
+function viewStatus() {
+  queueMicrotask(loadDiscoveryData);
+  const s=DISC.status;
+  const health={ok:'b-ok',failed:'b-conf',disabled:'b-plain',never_run:'b-unv'};
+  return `<div class="pagehead"><div><span class="eyebrow">Automation</span><h1>Data status</h1><p>The data refreshes automatically every day using GitHub Actions. No server is involved.</p></div><a class="btn primary" href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Run discovery now</a></div>
+  <p class="note">"Run discovery now" opens the update on GitHub. Choose <b>Run workflow</b>; the site republishes when it finishes (about 5–10 minutes). Only the repository owner can start it.</p>
+  ${DISC.statusError?`<div class="panel" role="alert">${esc(DISC.statusError)}</div>`:''}
+  ${s?`<section class="kpis"><div class="kpi"><span class="v">${esc(s.counts.companies)}</span><span class="l">Companies in database</span></div><div class="kpi"><span class="v">${esc(s.counts.articles)}</span><span class="l">Articles collected</span></div><div class="kpi"><span class="v">${esc(s.counts.sec_filings)}</span><span class="l">SEC Form D filings</span></div><div class="kpi"><span class="v small">${esc(new Date(s.generated_at+'Z').toLocaleString())}</span><span class="l">Last update</span></div></section>
+  <section class="panel"><h2>Sources</h2><div class="tw"><table><thead><tr><th>Source</th><th>Status</th><th>Last success</th><th>Notes</th></tr></thead><tbody>${s.sources.map(x=>`<tr><td>${esc(x.name)}<div class="small muted">${esc(x.group)}</div></td><td><span class="b ${health[x.health]||'b-unv'}">${esc(x.health.replace('_',' '))}</span></td><td>${esc(x.last_success?new Date(x.last_success+'Z').toLocaleString():'—')}</td><td class="small">${esc(x.last_error||x.disabled_reason||x.access_notes||'')}</td></tr>`).join('')}</tbody></table></div></section>
+  <section class="panel"><h2>Recent runs</h2><div class="tw"><table><thead><tr><th>Started</th><th>Source</th><th>Result</th><th class="r">New items</th><th class="r">New companies</th><th>Error</th></tr></thead><tbody>${s.recent_jobs.map(j=>`<tr><td>${esc(new Date(j.started_at+'Z').toLocaleString())}</td><td>${esc(j.source_key||j.job)}</td><td>${esc(j.status)}</td><td class="r">${esc(j.items_new)}</td><td class="r">${esc(j.startups_created)}</td><td class="small">${esc(j.error||'')}</td></tr>`).join('')}</tbody></table></div></section>`:''}`;
 }
 function viewTracking() {
   const rows=account.companies.filter(c=>!SCOUT.stageFilter||c.stage===SCOUT.stageFilter);
-  return `<div class="pagehead"><div><h1>My startups</h1><p>Your personal list, saved across devices when signed in.</p></div><button class="btn primary" id="add-company" ${!account.signedIn?'disabled':''}>Add a startup</button></div>
-  ${!account.signedIn?`<section class="panel"><h2>Build your startup list</h2><p>Browse public discovery and funding data freely. Sign in to save companies, add your own, and manage your list.</p>${signIn()}</section>`:''}
-  ${account.error?`<div class="panel" role="alert">${esc(account.error)} Reload to retry; your saved list has not been cleared.</div>`:''}
-  ${SCOUT.saveError?`<p class="panel" role="alert">${esc(SCOUT.saveError)}</p>`:''}
+  return `<div class="pagehead"><div><h1>My startups</h1><p>Your personal list. It is saved in this browser; use Back up to keep a copy or move it to another device.</p></div><button class="btn primary" id="add-company">Add a startup</button></div>
+  ${account.error?`<div class="panel" role="alert">${esc(account.error)}</div>`:''}
+  ${SCOUT.saveError&&!SCOUT.form?`<p class="panel" role="alert">${esc(SCOUT.saveError)}</p>`:''}
   ${SCOUT.form?companyForm(SCOUT.form):''}
-  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button></div>
-  <div class="scout-grid">${rows.map(c=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry)} · ${esc(c.stage)}</span><h2><button class="link" data-go="${esc(c.id)}">${esc(c.name)}</button></h2><p>${esc(c.location||'Location not supplied')}</p>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p class="muted">${esc(c.source)} · Added ${esc(new Date(c.createdAt).toLocaleDateString())}</p><div class="row"><a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Website</a><button class="btn" data-edit-company="${esc(c.id)}">Edit details</button><button class="btn" data-go="${esc(c.id)}">Research & score</button></div></article>`).join('')||'<section class="panel empty">No saved startups match. Add a company or save one from Discover.</section>'}</div>
-  <p class="note">Company details are saved to your account. Scorecard and pipeline edits still stay in this browser. New listings are unverified until you research their sources.</p>`;
+  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button><button class="btn" id="backup-export" ${account.companies.length?'':'disabled'}>Back up (download)</button><label class="btn">Restore backup<input type="file" id="backup-import" accept="application/json,.json" hidden></label></div>
+  ${SCOUT.importMsg?`<p class="note" role="status">${esc(SCOUT.importMsg)}</p>`:''}
+  <div class="scout-grid">${rows.map(c=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry)} · ${esc(c.stage)}</span><h2><button class="link" data-go="${esc(c.id)}">${esc(c.name)}</button></h2><p>${esc(c.location||'Location not supplied')}</p>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p class="muted">${esc(c.source)} · Added ${esc(new Date(c.createdAt).toLocaleDateString())}</p><div class="row"><a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Website</a><button class="btn" data-edit-company="${esc(c.id)}">Edit details</button><button class="btn" data-go="${esc(c.id)}">Research & score</button><button class="btn" data-remove-company="${esc(c.id)}">Remove</button></div></article>`).join('')||'<section class="panel empty">No saved startups yet. Add a company or track one from Discover.</section>'}</div>
+  <p class="note">Saved companies, scores and pipeline edits stay in this browser and do not sync between devices or people. Clearing browser data removes them; back up first.</p>`;
 }
 function companyForm(c) {
-  return `<form id="company-form" class="panel"><h2>${c.id?'Edit company':'Add a startup'}</h2><div class="fieldgrid"><label>Company name<input name="name" required maxlength="140" value="${esc(c.name)}"></label><label>Website<input name="website" type="url" placeholder="https://example.com" required maxlength="500" value="${esc(c.website)}"></label><label>Industry<input name="industry" maxlength="80" value="${esc(c.industry)}"></label><label>Location<input name="location" maxlength="140" value="${esc(c.location)}"></label><label>Funding stage<select name="stage">${options(STAGES,c.stage||'Not disclosed')}</select></label><label>Research notes<textarea name="notes" maxlength="2000">${esc(c.notes)}</textarea></label></div><div class="controls"><button class="btn primary" ${SCOUT.saving?'disabled':''}>${SCOUT.saving?'Saving…':'Save company'}</button><button type="button" class="btn" id="cancel-company">Cancel</button></div><p id="company-error" role="alert" class="warnline">${esc(SCOUT.saveError)}</p></form>`;
+  return `<form id="company-form" class="panel"><h2>${c.id?'Edit company':'Add a startup'}</h2><div class="fieldgrid"><label>Company name<input name="name" required maxlength="140" value="${esc(c.name)}"></label><label>Website<input name="website" type="url" placeholder="https://example.com" required maxlength="500" value="${esc(c.website)}"></label><label>Industry<input name="industry" maxlength="80" value="${esc(c.industry)}"></label><label>Location<input name="location" maxlength="140" value="${esc(c.location)}"></label><label>Funding stage<select name="stage">${options(STAGES,c.stage||'Not disclosed')}</select></label><label>Research notes<textarea name="notes" maxlength="2000">${esc(c.notes)}</textarea></label></div><div class="controls"><button class="btn primary">Save company</button><button type="button" class="btn" id="cancel-company">Cancel</button></div><p id="company-error" role="alert" class="warnline">${esc(SCOUT.saveError)}</p></form>`;
 }
-async function saveCompany(c,button) {
-  SCOUT.saving=true;if(button)button.disabled=true;
-  try {const r=await fetch(c.id?'/api/tracked/'+encodeURIComponent(c.id):'/api/tracked',{method:c.id?'PUT':'POST',headers:{'content-type':'application/json'},body:JSON.stringify(c)});const j=await r.json();if(!r.ok)throw new Error(j.error||'Unable to save.');location.hash='tracking';location.reload();}
-  catch(e){SCOUT.saveError=e.message;const error=document.getElementById('company-error');if(error)error.textContent=e.message;else if(route.view==='tracking')render();else toast(e.message);}
-  finally{SCOUT.saving=false;if(button)button.disabled=false;}
+function persist(list) {
+  try {VS.writeSaved(localStorage,list);}catch{throw new Error('This browser blocked saving (private mode or storage full).');}
+  account.companies=list;
+}
+function saveCompany(c) {
+  try {persist(VS.upsertCompany(account.companies,c));SCOUT.form=null;SCOUT.saveError='';location.hash='tracking';location.reload();}
+  catch(e){SCOUT.saveError=e.message;const error=document.getElementById('company-error');if(error)error.textContent=e.message;else render();}
 }
 document.addEventListener('submit',e=>{
-  if(e.target.id==='discover-form'){e.preventDefault();const f=new FormData(e.target);SCOUT.q=String(f.get('q')||'');SCOUT.industry=String(f.get('industry')||'');SCOUT.page=1;SCOUT.result=null;loadDiscovery();}
-  if(e.target.id==='company-form'){e.preventDefault();const fields=Object.fromEntries(new FormData(e.target));saveCompany({...SCOUT.form,...fields},e.submitter);}
+  if(e.target.id==='company-form'){e.preventDefault();saveCompany({...SCOUT.form,...Object.fromEntries(new FormData(e.target))});}
 });
-document.addEventListener('change',e=>{if(e.target.id==='tracked-stage'){SCOUT.stageFilter=e.target.value;render();}});
+document.addEventListener('change',e=>{
+  if(e.target.id==='tracked-stage'){SCOUT.stageFilter=e.target.value;render();}
+  if(e.target.closest?.('#disc-filters')){const f=Object.fromEntries(new FormData(e.target.closest('#disc-filters')));Object.assign(DISC.f,f);DISC.limit=60;render();}
+  if(e.target.id==='backup-import'&&e.target.files[0]){e.target.files[0].text().then(t=>{const r=VS.importBackup(account.companies,JSON.parse(t));persist(r.list);SCOUT.importMsg=`Restored ${r.added} compan${r.added===1?'y':'ies'}${r.skipped?`, skipped ${r.skipped} (already saved or invalid)`:''}. Reloading…`;render();setTimeout(()=>location.reload(),900);}).catch(err=>{SCOUT.importMsg='Could not restore: '+(err.message||'invalid file');render();});}
+});
+document.addEventListener('input',e=>{if(e.target.name==='q'&&e.target.closest('#disc-filters')){DISC.f.q=e.target.value;DISC.limit=60;clearTimeout(DISC.t);DISC.t=setTimeout(()=>{const pos=e.target.selectionStart;render();const i=document.querySelector('#disc-filters input[name=q]');if(i){i.focus();i.setSelectionRange(pos,pos);}},250);}});
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
   if(t.id==='add-company'){SCOUT.form={};SCOUT.saveError='';render();}
   if(t.id==='cancel-company'){SCOUT.form=null;SCOUT.saveError='';render();}
   if(t.dataset.editCompany){SCOUT.form=account.companies.find(c=>c.id===t.dataset.editCompany);SCOUT.saveError='';render();scrollTo(0,0);}
-  if(t.dataset.track!==undefined){if(!account.signedIn){go('tracking');return;}SCOUT.form={...SCOUT.result.companies[Number(t.dataset.track)]};SCOUT.saveError='';go('tracking');}
-  if(t.dataset.discoverPage){SCOUT.page=Number(t.dataset.discoverPage);loadDiscovery();}
-  if(t.id==='discover-retry')loadDiscovery();
+  if(t.dataset.removeCompany){const c=account.companies.find(x=>x.id===t.dataset.removeCompany);if(c&&confirm('Remove '+c.name+' from your list?')){persist(VS.removeCompany(account.companies,c.id));location.hash='tracking';location.reload();}}
+  if(t.id==='backup-export'){const blob=new Blob([JSON.stringify({app:'VentureScout',exportedAt:new Date().toISOString(),companies:account.companies},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='venturescout-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);}
+  if(t.dataset.disc){DISC.selected=Number(t.dataset.disc);render();document.getElementById('disc-profile')?.scrollIntoView();}
+  if(t.id==='disc-close'){DISC.selected=null;render();}
+  if(t.dataset.discTrack){startTracking(DISC.data.companies.find(c=>c.id===Number(t.dataset.discTrack)));}
+  if(t.id==='disc-more'){DISC.limit+=60;render();}
 });
 
 /* Browser agent tools use the same data and navigation as the visible UI. */
@@ -910,12 +988,9 @@ render();
     if (!response.ok) throw new Error("Snapshot unavailable");
     const config = await response.json();
     const data={settings:config.settings,startups:[],rounds:[],claims:[],pipeline:[],scores:[]};
-    window.ventureAccount = {signedIn:false,companies:[],error:''};
-    try {
-      const session=await fetch('/api/session',{signal:AbortSignal.timeout(7000)}).then(r=>{if(!r.ok)throw new Error();return r.json();});
-      window.ventureAccount.signedIn=session.signedIn;
-      if(session.signedIn){const r=await fetch('/api/tracked',{signal:AbortSignal.timeout(7000)});const j=await r.json();if(!r.ok)throw new Error();window.ventureAccount.companies=j.companies;}
-    } catch {window.ventureAccount.error='Your saved startup list could not be loaded.';}
+    window.ventureAccount = {companies:[],error:''};
+    try { window.ventureAccount.companies = window.VentureScout.loadSaved(localStorage); }
+    catch { window.ventureAccount.error = 'This browser blocked access to saved data (private mode or storage disabled).'; }
     for(const c of window.ventureAccount.companies) {
       const s=Object.fromEntries(config.startupFields.map(k=>[k,'']));
       Object.assign(s,{startup_id:c.id,company_name:c.name,website:c.website,sector:c.industry,sub_sector:'',funding_stage:c.stage,hq_city:c.location,verification_confidence:'Low',fundraising_status:'Unknown',description:c.notes,record_version:'1',missing_fields:'Financials; funding rounds; verified evidence'});

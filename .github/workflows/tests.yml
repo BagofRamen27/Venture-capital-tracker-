@@ -1,0 +1,34 @@
+name: tests
+
+on:
+  push:
+    branches-ignore: [discovery-data]
+  pull_request:
+
+jobs:
+  discovery-engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: discovery-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m pytest
+
+  website:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vc-investment-tracker-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test
+      - run: npm run check
+      - run: node scripts/build.mjs
