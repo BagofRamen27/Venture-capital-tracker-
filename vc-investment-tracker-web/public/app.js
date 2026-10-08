@@ -1,10 +1,10 @@
-/* Startup Investment Tracker: app code (derived fields, views, charts, local edits). */
+/* VentureScout: app code (derived fields, views, charts, local edits). */
 function boot(D, SOURCE) {
 /* Imported research snapshot; edits are local to this browser. */
 (function () {
   const b = document.getElementById("modebadge");
-  b.textContent = "Research snapshot";
-  b.setAttribute("data-tip", "Imported research dated October 8, 2026. Scores and pipeline edits are saved only in this browser.");
+  b.textContent = "Research & personal tracking";
+  b.setAttribute("data-tip", "Current online discovery and your saved companies. Scores and pipeline edits stay in this browser.");
 })();
 const S = D.settings, T = S.thresholds, W = S.weights;
 const CRIT = S.criteria.map(c => ({ key: c[0], name: c[1], r1: c[2], r3: c[3], r5: c[4], ev: c[5] }));
@@ -45,6 +45,7 @@ const saveUI = () => { try { localStorage.setItem(LS + ".ui", JSON.stringify(UI)
 /* ---------- data access ---------- */
 const STARTUPS = D.startups;
 const BYID = Object.fromEntries(STARTUPS.map(s => [s.startup_id, s]));
+if (!Object.hasOwn(BYID, UI.scoreId)) UI.scoreId = STARTUPS[0]?.startup_id || '';
 const ROUNDS = id => D.rounds.filter(r => r.startup_id === id);
 const CUR = Object.fromEntries(D.rounds.filter(r => r.is_current_round === "Yes").map(r => [r.startup_id, r]));
 const CLAIMS = id => D.claims.filter(c => c.startup_id === id);
@@ -224,8 +225,8 @@ function niceTicks(max, n = 4) {
 let route = { view: "dashboard", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
-  if (/^DS-\d{3}$/.test(h) && BYID[h]) return { view: "profile", id: h };
-  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes"].includes(h)) return { view: h };
+  if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
+  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking"].includes(h)) return { view: h };
   return { view: "dashboard" };
 }
 function go(view, id) {
@@ -243,9 +244,9 @@ function render() {
   tip.hidden = true;
   const active = route.view === "profile" ? "directory" : route.view;
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { dashboard: viewDashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: viewFinancials, changes: viewChanges }[route.view];
+  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking }[route.view];
   $("#app").innerHTML = v(route.id);
-  document.title = route.view === "profile" ? BYID[route.id].company_name + " · Startup Investment Tracker" : "Startup Investment Tracker";
+  document.title = route.view === "profile" ? BYID[route.id].company_name + " · VentureScout" : "VentureScout";
   updateLogCount();
 }
 
@@ -400,7 +401,7 @@ function viewDirectory() {
   const opts = (k, fn) => [...new Set(STARTUPS.map(fn))].filter(Boolean).sort();
   const nActive = Object.values(st.f).filter(Boolean).length + (st.q ? 1 : 0);
   return `
-  <div class="pagehead"><div><span class="eyebrow">Company directory</span><h1>Startups</h1><p>Search and filter all ${STARTUPS.length} startups. Open a row for the full profile.</p></div></div>
+  <div class="pagehead"><div><span class="eyebrow">Company directory</span><h1>Startups</h1><p>${STARTUPS.length} research profiles, including your saved companies. There is no 20-company limit.</p></div><div class="controls"><button class="btn primary" data-nav="discover">Discover more startups</button><button class="btn" data-nav="tracking">Add a startup</button></div></div>
   <section class="panel" style="display:flex;flex-direction:column;gap:12px">
     <div class="controls">
       <input id="q" class="search" type="search" placeholder="Search name, sub-sector, founders, business model, investors" value="${esc(st.q)}" aria-label="Search startups">
@@ -451,7 +452,7 @@ function renderDirResults() {
 function fact(k, v, extra = "", big) { return `<div class="fact"><span class="k">${k}</span><span class="v ${big ? "big" : ""}">${v}</span>${extra}</div>`; }
 function viewProfile(id) {
   const s = BYID[id], r = CUR[id] || {}, f = finance(s), sc = score(id), p = pipe(id), fl = flags(id);
-  const idx = STARTUPS.indexOf(s), prev = STARTUPS[(idx + 19) % 20], next = STARTUPS[(idx + 1) % 20];
+  const idx = STARTUPS.indexOf(s), prev = STARTUPS[(idx + STARTUPS.length - 1) % STARTUPS.length], next = STARTUPS[(idx + 1) % STARTUPS.length];
   const prior = ROUNDS(id).filter(x => x.is_current_round !== "Yes");
   const raised = num(r.capital_raised_usd), mn = num(r.min_target_usd), mx = num(r.max_target_usd);
   const claims = CLAIMS(id);
@@ -477,7 +478,7 @@ function viewProfile(id) {
       <span>${esc(s.founded_basis)} ${esc(s.founded_year)}</span>
       <span>${esc(s.funding_stage)}</span>
       ${s.accelerator ? `<span>${esc(s.accelerator)}</span>` : ""}
-      <span>Verified ${esc(s.verification_date)}</span>
+      <span>${s.verification_date ? 'Verified '+esc(s.verification_date) : 'Not yet reviewed'}</span>
     </div>
     <div class="small muted">${esc(s.verification_basis)}${s.fundraising_detail ? " · " + esc(s.fundraising_detail) : ""}</div>
   </section>
@@ -586,7 +587,8 @@ function scoreSummary(id) {
     </div></div>`;
 }
 function viewScorecard() {
-  const id = UI.scoreId in BYID ? UI.scoreId : "DS-001", s = BYID[id], r = scoreRow(id), sc = score(id), f = finance(s);
+  if (!STARTUPS.length) return `<div class="pagehead"><h1>Scorecard</h1></div><section class="panel"><p>Save a startup to begin reviewing it.</p><button class="btn primary" data-nav="discover">Discover startups</button></section>`;
+  const id = UI.scoreId in BYID ? UI.scoreId : STARTUPS[0].startup_id, s = BYID[id], r = scoreRow(id), sc = score(id), f = finance(s);
   const all = STARTUPS.map(x => ({ s: x, sc: score(x.startup_id) }));
   const ranked = all.filter(x => x.sc.s100 != null && x.sc.rating !== "Insufficient evidence").sort((a, b) => b.sc.s100 - a.sc.s100);
   const insuff = all.filter(x => x.sc.rating === "Insufficient evidence");
@@ -607,7 +609,7 @@ function viewScorecard() {
         <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <div class="scorebtns" role="group" aria-label="${c.name} score">${["1", "2", "3", "4", "5", "IE"].map(o => `<button type="button" data-score="${c.key}" data-val="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}<button type="button" class="clr" data-score="${c.key}" data-val="">Clear</button></div>
           <textarea id="ev-${c.key}" data-evidence="${c.key}" placeholder="Evidence (required with a score): cite a claim ID, filing or source" aria-label="${c.name} evidence">${esc(ev)}</textarea>
-          ${v && v !== "IE" && !ev.trim() ? `<div class="warnline">Add evidence before this score can sync to the sheet.</div>` : ""}
+          ${v && v !== "IE" && !ev.trim() ? `<div class="warnline">Add a source to support this score.</div>` : ""}
           ${!blank(v) && v !== "IE" ? `<div class="small muted">Points: <span class="num">${(+v / 5 * W[c.key]).toFixed(1)}</span> of ${W[c.key]}</div>` : ""}
         </div></div>`; }).join("")}
       <div class="fieldgrid" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
@@ -799,6 +801,69 @@ document.addEventListener("dragover", e => { const col = e.target.closest?.("[da
 document.addEventListener("dragleave", e => { const col = e.target.closest?.("[data-stage]"); if (col && !col.contains(e.relatedTarget)) col.classList.remove("drop"); });
 document.addEventListener("drop", e => { const col = e.target.closest?.("[data-stage]"); if (!col) return; e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (BYID[id] && setField("Deal Pipeline", id, "pipeline_stage", col.dataset.stage)) { render(); toast(BYID[id].company_name + " moved to " + col.dataset.stage); } else render(); });
 
+const STAGES = ['Not disclosed','Pre-seed','Seed','Series A','Series B','Series C+','Growth','Bootstrapped'];
+const INDUSTRIES = ['B2B','Fintech','Consumer','Healthcare','Education','Industrials','Real Estate','Other'];
+const SCOUT = { q:'',industry:'',page:1,result:null,loading:false,error:'',loaded:false,form:null,saveError:'',saving:false,stageFilter:'' };
+const account = window.ventureAccount || {signedIn:false,companies:[],error:''};
+const options = (items,current) => items.map(x=>`<option value="${esc(x)}" ${x===current?'selected':''}>${esc(x)}</option>`).join('');
+const marketUI=window.createMarketUI({esc,render:()=>render(),count:()=>account.companies.length,track:c=>{if(!account.signedIn){go('tracking');return;}SCOUT.form={...c};SCOUT.saveError='';go('tracking');}});
+const signIn = () => `<a class="btn primary" target="_top" href="/signin-with-chatgpt?return_to=${encodeURIComponent('/#tracking')}">Sign in to save startups</a>`;
+function viewDiscover() {
+  if(!SCOUT.loaded&&!SCOUT.loading)queueMicrotask(loadDiscovery);
+  const result=SCOUT.result;
+  return `<div class="pagehead"><div><h1>Discover startups</h1><p>Find companies online and build your own research list.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
+  <form id="discover-form" class="panel scout-search"><label>Company or keyword<input name="q" placeholder="AI, robotics, climate…" value="${esc(SCOUT.q)}" maxlength="100"></label><label>Industry<select name="industry"><option value="">All industries</option>${options(INDUSTRIES,SCOUT.industry)}</select></label><button class="btn primary" ${SCOUT.loading?'disabled':''}>Search online</button></form>
+  <p class="note">Listings from <a href="https://www.startupwho.com/" target="_blank" rel="noopener">StartupWho</a>. Results refresh as you browse, with up to one hour of caching. This source does not supply funding stage or verified financials; add a stage after saving a company.</p>
+  ${SCOUT.loading?'<div class="panel" role="status">Finding companies…</div>':''}
+  ${SCOUT.error?`<div class="panel" role="alert">${esc(SCOUT.error)} <button class="btn" id="discover-retry">Retry</button> <a href="https://www.startupwho.com/startups" target="_blank" rel="noopener">Open source directory</a></div>`:''}
+  ${result?`<div class="ph"><p>${result.total==null?'':esc(result.total.toLocaleString())+' source results · '}Page ${result.page}${result.stale?' · Showing saved results; source is unavailable':''}</p><span class="muted">Retrieved ${esc(new Date(result.fetchedAt).toLocaleString())}</span></div>
+  <div class="scout-grid">${result.companies.map((c,i)=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry||'Other')}</span><h2>${esc(c.name)}</h2><p>${esc(c.location||'Location not supplied')}</p><p class="muted">Funding stage: not disclosed</p><div class="row">${c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Company website</a>`:'Website not supplied'}<button type="button" class="btn primary" data-track="${i}" ${!c.website||isTracked(c.website)?'disabled':''}>${isTracked(c.website)?'Tracked':'Track company'}</button></div></article>`).join('')||'<div class="panel empty">No companies match. Try another keyword or industry.</div>'}</div>
+  <div class="scout-pagination"><button class="btn" data-discover-page="${result.page-1}" ${result.page<=1||SCOUT.loading?'disabled':''}>Previous</button><span>Page ${result.page}</span><button class="btn" data-discover-page="${result.page+1}" ${!result.hasNext||SCOUT.loading?'disabled':''}>Next</button></div>`:''}`;
+}
+function isTracked(website) {try {const host=new URL(website).hostname.replace(/^www\./,'');return account.companies.some(c=>new URL(c.website).hostname.replace(/^www\./,'')===host);}catch{return false;}}
+async function loadDiscovery() {
+  if(SCOUT.loading)return;
+  SCOUT.loading=true;SCOUT.loaded=true;SCOUT.error='';
+  if(route.view==='discover')render();
+  try {const query=new URLSearchParams({q:SCOUT.q,industry:SCOUT.industry,page:String(SCOUT.page)});const r=await fetch('/api/discover?'+query,{signal:AbortSignal.timeout(16000)});const j=await r.json();if(!r.ok)throw new Error(j.error||'Discovery is unavailable.');SCOUT.result=j;}
+  catch(e){SCOUT.error=e.name==='TimeoutError'?'The source took too long to respond. Try again.':e.message;}
+  finally{SCOUT.loading=false;if(route.view==='discover')render();}
+}
+function viewTracking() {
+  const rows=account.companies.filter(c=>!SCOUT.stageFilter||c.stage===SCOUT.stageFilter);
+  return `<div class="pagehead"><div><h1>My startups</h1><p>Your personal list, saved across devices when signed in.</p></div><button class="btn primary" id="add-company" ${!account.signedIn?'disabled':''}>Add a startup</button></div>
+  ${!account.signedIn?`<section class="panel"><h2>Build your startup list</h2><p>Browse public discovery and funding data freely. Sign in to save companies, add your own, and manage your list.</p>${signIn()}</section>`:''}
+  ${account.error?`<div class="panel" role="alert">${esc(account.error)} Reload to retry; your saved list has not been cleared.</div>`:''}
+  ${SCOUT.saveError?`<p class="panel" role="alert">${esc(SCOUT.saveError)}</p>`:''}
+  ${SCOUT.form?companyForm(SCOUT.form):''}
+  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button></div>
+  <div class="scout-grid">${rows.map(c=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry)} · ${esc(c.stage)}</span><h2><button class="link" data-go="${esc(c.id)}">${esc(c.name)}</button></h2><p>${esc(c.location||'Location not supplied')}</p>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p class="muted">${esc(c.source)} · Added ${esc(new Date(c.createdAt).toLocaleDateString())}</p><div class="row"><a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Website</a><button class="btn" data-edit-company="${esc(c.id)}">Edit details</button><button class="btn" data-go="${esc(c.id)}">Research & score</button></div></article>`).join('')||'<section class="panel empty">No saved startups match. Add a company or save one from Discover.</section>'}</div>
+  <p class="note">Company details are saved to your account. Scorecard and pipeline edits still stay in this browser. New listings are unverified until you research their sources.</p>`;
+}
+function companyForm(c) {
+  return `<form id="company-form" class="panel"><h2>${c.id?'Edit company':'Add a startup'}</h2><div class="fieldgrid"><label>Company name<input name="name" required maxlength="140" value="${esc(c.name)}"></label><label>Website<input name="website" type="url" placeholder="https://example.com" required maxlength="500" value="${esc(c.website)}"></label><label>Industry<input name="industry" maxlength="80" value="${esc(c.industry)}"></label><label>Location<input name="location" maxlength="140" value="${esc(c.location)}"></label><label>Funding stage<select name="stage">${options(STAGES,c.stage||'Not disclosed')}</select></label><label>Research notes<textarea name="notes" maxlength="2000">${esc(c.notes)}</textarea></label></div><div class="controls"><button class="btn primary" ${SCOUT.saving?'disabled':''}>${SCOUT.saving?'Saving…':'Save company'}</button><button type="button" class="btn" id="cancel-company">Cancel</button></div><p id="company-error" role="alert" class="warnline">${esc(SCOUT.saveError)}</p></form>`;
+}
+async function saveCompany(c,button) {
+  SCOUT.saving=true;if(button)button.disabled=true;
+  try {const r=await fetch(c.id?'/api/tracked/'+encodeURIComponent(c.id):'/api/tracked',{method:c.id?'PUT':'POST',headers:{'content-type':'application/json'},body:JSON.stringify(c)});const j=await r.json();if(!r.ok)throw new Error(j.error||'Unable to save.');location.hash='tracking';location.reload();}
+  catch(e){SCOUT.saveError=e.message;const error=document.getElementById('company-error');if(error)error.textContent=e.message;else if(route.view==='tracking')render();else toast(e.message);}
+  finally{SCOUT.saving=false;if(button)button.disabled=false;}
+}
+document.addEventListener('submit',e=>{
+  if(e.target.id==='discover-form'){e.preventDefault();const f=new FormData(e.target);SCOUT.q=String(f.get('q')||'');SCOUT.industry=String(f.get('industry')||'');SCOUT.page=1;SCOUT.result=null;loadDiscovery();}
+  if(e.target.id==='company-form'){e.preventDefault();const fields=Object.fromEntries(new FormData(e.target));saveCompany({...SCOUT.form,...fields},e.submitter);}
+});
+document.addEventListener('change',e=>{if(e.target.id==='tracked-stage'){SCOUT.stageFilter=e.target.value;render();}});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.id==='add-company'){SCOUT.form={};SCOUT.saveError='';render();}
+  if(t.id==='cancel-company'){SCOUT.form=null;SCOUT.saveError='';render();}
+  if(t.dataset.editCompany){SCOUT.form=account.companies.find(c=>c.id===t.dataset.editCompany);SCOUT.saveError='';render();scrollTo(0,0);}
+  if(t.dataset.track!==undefined){if(!account.signedIn){go('tracking');return;}SCOUT.form={...SCOUT.result.companies[Number(t.dataset.track)]};SCOUT.saveError='';go('tracking');}
+  if(t.dataset.discoverPage){SCOUT.page=Number(t.dataset.discoverPage);loadDiscovery();}
+  if(t.id==='discover-retry')loadDiscovery();
+});
+
 /* Browser agent tools use the same data and navigation as the visible UI. */
 if (document.modelContext?.registerTool) {
   const lifecycle = new AbortController();
@@ -809,7 +874,7 @@ if (document.modelContext?.registerTool) {
   };
   register({
     name: "search_startups", title: "Search startup research",
-    description: "Read companies in the imported snapshot, filtered by company name or sector.",
+    description: "Read your saved companies, filtered by company name or sector.",
     inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"], additionalProperties: false },
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     execute(input) {
@@ -841,9 +906,24 @@ render();
 
 (async function load() {
   try {
-    const response = await fetch("data/demo-data.json");
+    const response = await fetch("data/config.json");
     if (!response.ok) throw new Error("Snapshot unavailable");
-    const data = await response.json();
+    const config = await response.json();
+    const data={settings:config.settings,startups:[],rounds:[],claims:[],pipeline:[],scores:[]};
+    window.ventureAccount = {signedIn:false,companies:[],error:''};
+    try {
+      const session=await fetch('/api/session',{signal:AbortSignal.timeout(7000)}).then(r=>{if(!r.ok)throw new Error();return r.json();});
+      window.ventureAccount.signedIn=session.signedIn;
+      if(session.signedIn){const r=await fetch('/api/tracked',{signal:AbortSignal.timeout(7000)});const j=await r.json();if(!r.ok)throw new Error();window.ventureAccount.companies=j.companies;}
+    } catch {window.ventureAccount.error='Your saved startup list could not be loaded.';}
+    for(const c of window.ventureAccount.companies) {
+      const s=Object.fromEntries(config.startupFields.map(k=>[k,'']));
+      Object.assign(s,{startup_id:c.id,company_name:c.name,website:c.website,sector:c.industry,sub_sector:'',funding_stage:c.stage,hq_city:c.location,verification_confidence:'Low',fundraising_status:'Unknown',description:c.notes,record_version:'1',missing_fields:'Financials; funding rounds; verified evidence'});
+      data.startups.push(s);
+      const p=Object.fromEntries(config.pipelineFields.map(k=>[k,'']));
+      Object.assign(p,{startup_id:c.id,pipeline_stage:'Sourced',dd_form_c_review:'Not started',dd_terms_verified:'Not started',dd_financials_reviewed:'Not started',dd_founder_references:'Not started',dd_customer_references:'Not started',dd_legal_cap_table:'Not started'});data.pipeline.push(p);
+      data.scores.push({startup_id:c.id});
+    }
     boot(data, { kind: "snapshot" });
   } catch {
     document.getElementById("modebadge").textContent = "Data unavailable";
