@@ -1,23 +1,6 @@
-# Dependencies and generated output
+.sites-runtime/
 node_modules/
-dist/
-build/
-coverage/
-.vercel/
-.cache/
-*.log
-
-# Local configuration and credentials
 .env
 .env.*
-!.env.example
-*.pem
-*.key
-*service-account*.json
-credentials.json
-
-# OS and editor files
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+*.log
+*.tar.gz

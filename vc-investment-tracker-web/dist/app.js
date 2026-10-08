@@ -1,10 +1,10 @@
 /* Startup Investment Tracker: app code (derived fields, views, charts, local edits). */
 function boot(D, SOURCE) {
-/* SOURCE: { kind: "demo" | "sheets", detail, fetchedAt } — shown in the top bar so the data origin is never ambiguous */
+/* Imported research snapshot; edits are local to this browser. */
 (function () {
   const b = document.getElementById("modebadge");
-  if (SOURCE.kind === "sheets") { b.textContent = "Google Sheets · read-only"; b.classList.add("live"); b.setAttribute("data-tip", "Loaded from the Google Sheet through the read-only API at " + SOURCE.fetchedAt + ". Edits made here stay in this browser."); }
-  else { b.textContent = "Demo mode · CSV snapshot"; b.setAttribute("data-tip", "Snapshot of the tracker CSVs (research verified 2026-10-08). " + (SOURCE.detail || "Google Sheets is not connected.")); }
+  b.textContent = "Research snapshot";
+  b.setAttribute("data-tip", "Imported research dated October 8, 2026. Scores and pipeline edits are saved only in this browser.");
 })();
 const S = D.settings, T = S.thresholds, W = S.weights;
 const CRIT = S.criteria.map(c => ({ key: c[0], name: c[1], r1: c[2], r3: c[3], r5: c[4], ev: c[5] }));
@@ -749,7 +749,7 @@ let confirmReset = false;
 function viewChanges() {
   const log = EDITS.log.slice().reverse();
   return `<div class="pagehead"><div><span class="eyebrow">Change Requests</span><h1>Local edits</h1>
-    <p>Every score and pipeline edit made in this browser, recorded in the Change Requests format from the schema. Edits stay in this browser until the Google Sheets connection is set up; copy them as CSV to paste into the sheet.</p></div>
+    <p>Your score and pipeline edits are saved only in this browser. Copy them as CSV to share with teammates or keep a backup. Edits do not sync between devices.</p></div>
     <div class="controls"><button type="button" class="btn primary" id="copycsv" ${log.length ? "" : "disabled"}>Copy as CSV</button>${log.length ? `<button type="button" class="btn danger" id="resetask">Discard local edits</button>` : ""}</div></div>
   ${confirmReset ? `<div class="confirm">Discard all ${log.length} local edits and restore the imported data? <button type="button" class="btn danger" id="resetyes">Discard</button><button type="button" class="btn" id="resetno">Keep</button></div>` : ""}
   ${log.length ? changeTable(log) : `<div class="panel empty">No local edits yet. Score a startup or move one in the pipeline and it appears here.</div>`}`;
@@ -799,28 +799,57 @@ document.addEventListener("dragover", e => { const col = e.target.closest?.("[da
 document.addEventListener("dragleave", e => { const col = e.target.closest?.("[data-stage]"); if (col && !col.contains(e.relatedTarget)) col.classList.remove("drop"); });
 document.addEventListener("drop", e => { const col = e.target.closest?.("[data-stage]"); if (!col) return; e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (BYID[id] && setField("Deal Pipeline", id, "pipeline_stage", col.dataset.stage)) { render(); toast(BYID[id].company_name + " moved to " + col.dataset.stage); } else render(); });
 
+/* Browser agent tools use the same data and navigation as the visible UI. */
+if (document.modelContext?.registerTool) {
+  const lifecycle = new AbortController();
+  addEventListener("pagehide", () => lifecycle.abort(), { once: true });
+  const register = tool => {
+    try { Promise.resolve(document.modelContext.registerTool(tool, { signal: lifecycle.signal })).catch(() => {}); }
+    catch { /* The site remains usable when browser tools are unavailable. */ }
+  };
+  register({
+    name: "search_startups", title: "Search startup research",
+    description: "Read companies in the imported snapshot, filtered by company name or sector.",
+    inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"], additionalProperties: false },
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    execute(input) {
+      if (!input || typeof input.query !== "string") throw new Error("A text query is required.");
+      const query = input.query.trim().toLowerCase();
+      return STARTUPS.filter(s => (s.company_name + " " + s.sector).toLowerCase().includes(query))
+        .map(s => ({ id: s.startup_id, company: s.company_name, sector: s.sector, stage: pipe(s.startup_id).pipeline_stage }));
+    }
+  });
+  register({
+    name: "open_startup_profile", title: "Open startup profile",
+    description: "Navigate to a startup profile in the visible tracker without changing its records.",
+    inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"], additionalProperties: false },
+    annotations: { readOnlyHint: false, untrustedContentHint: false },
+    execute(input) {
+      if (!input || typeof input.id !== "string" || !Object.hasOwn(BYID, input.id)) throw new Error("Unknown startup ID.");
+      go("profile", input.id);
+      return { view: "profile", id: input.id, company: BYID[input.id].company_name };
+    }
+  });
+}
+
 /* boot */
 const _render = render;
 render = function () { _render(); if (route.view === "directory") renderDirResults(); };
 route = parseHash();
 render();
 }
-/* Data loader for the deployed site. Tries the read-only Google Sheets API first and falls back to the
-   bundled CSV snapshot. The top-bar badge says which one is showing, and why. */
-(async function load() {
-  let detail = "Google Sheets is not connected yet.";
-  try {
-    const r = await fetch("/api/data", { headers: { accept: "application/json" }, cache: "no-store" });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok && j.source === "google-sheets" && j.data) {
-      boot(j.data, { kind: "sheets", fetchedAt: new Date(j.fetchedAt).toLocaleString() });
-      return;
-    }
-    if (j.error) detail = j.error;
-  } catch (e) {
-    detail = "The live-data API is not available here.";
-  }
-  const d = await (await fetch("data/demo-data.json")).json();
-  boot(d, { kind: "demo", detail });
-})();
 
+(async function load() {
+  try {
+    const response = await fetch("data/demo-data.json");
+    if (!response.ok) throw new Error("Snapshot unavailable");
+    const data = await response.json();
+    boot(data, { kind: "snapshot" });
+  } catch {
+    document.getElementById("modebadge").textContent = "Data unavailable";
+    const message = document.createElement("p");
+    message.className = "panel";
+    message.textContent = "The research data could not be loaded. Reload this page to try again.";
+    document.getElementById("app").replaceChildren(message);
+  }
+})();
