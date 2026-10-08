@@ -124,3 +124,16 @@ def test_polite_client_retries_then_succeeds_and_refuses_403():
     assert attempts["n"] == 3
     with pytest.raises(SourceUnavailable, match="refused access"):
         client.get("https://blocked.example.com/x")
+
+
+def test_pasted_sec_user_agent_is_cleaned_for_http_headers():
+    import h11
+
+    from vcdiscovery.config import Settings
+
+    raw = "  José Example\njose@example.com\r\n"
+    with pytest.raises((h11.LocalProtocolError, UnicodeEncodeError)):  # what the first live run hit
+        h11.Request(method="GET", target="/", headers=[("Host", "www.sec.gov"), ("User-Agent", raw)])
+    cleaned = Settings(_env_file=None, sec_user_agent=raw).sec_user_agent
+    assert cleaned == "Jose Example jose@example.com"
+    h11.Request(method="GET", target="/", headers=[("Host", "www.sec.gov"), ("User-Agent", cleaned)])

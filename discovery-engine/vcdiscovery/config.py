@@ -9,6 +9,9 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
+import unicodedata
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Folder that contains `vcdiscovery/`, `config/`, `data/` (the discovery-engine folder).
@@ -45,6 +48,16 @@ class Settings(BaseSettings):
     sec_max_filings_per_run: int = 150
     stale_after_days: int = 180
     job_lock_minutes: int = 60
+
+    @field_validator("sec_user_agent", "http_user_agent", mode="before")
+    @classmethod
+    def _clean_header(cls, value):
+        """Pasted values often carry line breaks, tabs or accented letters, which are not allowed in an
+        HTTP header. Collapse whitespace and convert to plain ASCII ('José' -> 'Jose')."""
+        if not isinstance(value, str):
+            return value
+        ascii_text = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
+        return " ".join(ascii_text.split())
 
     def resolve_path(self, value: str) -> Path:
         path = Path(value)
