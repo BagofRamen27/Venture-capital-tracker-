@@ -3,8 +3,8 @@
 A web app for a small VC team to browse, score and diligence a verified startup research database:
 dashboard, searchable directory, startup profiles, investment scorecard, deal pipeline and financial analysis.
 
-It ships with the real research snapshot (20 startups, 25 funding rounds, 144 source claims, IDs `DS-001`..`DS-020`)
-and can read the live Google Sheet once you add credentials. Nothing in it is sample or invented data.
+It ships with the supplied research snapshot (20 startups, 25 funding rounds, 144 source claims, IDs `DS-001`..`DS-020`)
+and can read the live Google Sheet once you add credentials. Research claims are preserved as supplied; this import does not independently verify them.
 
 ## What is in this folder
 
@@ -37,20 +37,37 @@ Credentials stay on the server: the browser never receives them, and error messa
 Score and pipeline edits are saved in each person's browser and logged in the Change Requests format
 (**Local edits** button, with Copy as CSV). They are not written to the sheet; the integration is read-only by design.
 
-## Put it on GitHub (no coding)
+## Repository and local setup
 
-1. Unzip `vc-investment-tracker-web.zip`.
-2. On github.com, click **New repository**. Name it (for example `vc-investment-tracker`), choose **Private**, and create it.
-3. On the empty repository page, click **uploading an existing file**.
-4. Open the unzipped folder, select everything inside it (not the folder itself), and drag it onto the page.
-   Some computers hide files whose names start with a dot; `.gitignore` and `.env.example` are optional, so it's fine if they don't upload.
-5. Click **Commit changes**.
+Source: https://github.com/BagofRamen27/Venture-capital-tracker-
+
+The original ZIP structure is preserved under `vc-investment-tracker-web/`. The bundled snapshot
+and test fixture are source data, not generated build output. `.env.example` contains
+blank placeholders; real credentials, local environment files and build output must
+stay out of Git.
+
+```sh
+git clone https://github.com/BagofRamen27/Venture-capital-tracker-.git
+cd Venture-capital-tracker-/vc-investment-tracker-web
+node --test
+node scripts/dev-server.mjs
+```
+
+Open http://localhost:3000. There are no dependencies to install or build step.
+For optional live data, copy `.env.example` to `.env.local` and fill the variables.
+`src/loader.js` is retained from the archive; its loader is already included in
+`public/app.js`, so no bundling command is needed.
+
+The app has no authentication. Deployed pages, the bundled snapshot, and data
+returned by `/api/data` are accessible to visitors. Use only data intended for those
+visitors, or add access control before connecting confidential research. Local edits
+stay in the current browser and are not shared with teammates.
 
 ## Deploy to Vercel (no coding)
 
 1. Sign in at vercel.com with your GitHub account.
 2. Click **Add New → Project**, find the repository, and click **Import**.
-3. Leave **Framework Preset** as **Other** and leave the build settings empty (`vercel.json` already sets them).
+3. Set **Root Directory** to `vc-investment-tracker-web`. Leave **Framework Preset** as **Other** and leave the build settings empty (`vercel.json` already sets them).
 4. Click **Deploy**. After about a minute you get a URL. The site opens in **Demo mode · CSV snapshot**.
 
 Every later commit to GitHub redeploys automatically.
