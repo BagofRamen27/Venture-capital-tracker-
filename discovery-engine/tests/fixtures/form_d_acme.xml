@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<edgarSubmission>
+  <schemaVersion>X0708</schemaVersion>
+  <submissionType>D</submissionType>
+  <testOrLive>LIVE</testOrLive>
+  <primaryIssuer>
+    <cik>0001999001</cik>
+    <entityName>ACME ROBOTICS, INC.</entityName>
+    <issuerAddress>
+      <street1>100 EXAMPLE ST</street1>
+      <city>AUSTIN</city>
+      <stateOrCountry>TX</stateOrCountry>
+      <stateOrCountryDescription>TEXAS</stateOrCountryDescription>
+      <zipCode>78701</zipCode>
+    </issuerAddress>
+    <issuerPhoneNumber>5125550100</issuerPhoneNumber>
+    <jurisdictionOfInc>DELAWARE</jurisdictionOfInc>
+    <entityType>Corporation</entityType>
+    <yearOfInc>
+      <withinFiveYears>true</withinFiveYears>
+      <value>2023</value>
+    </yearOfInc>
+  </primaryIssuer>
+  <relatedPersonsList>
+    <relatedPersonInfo>
+      <relatedPersonName><firstName>Jane</firstName><middleName></middleName><lastName>Example</lastName></relatedPersonName>
+      <relatedPersonRelationshipList><relationship>Executive Officer</relationship><relationship>Director</relationship></relatedPersonRelationshipList>
+      <relationshipClarification></relationshipClarification>
+    </relatedPersonInfo>
+    <relatedPersonInfo>
+      <relatedPersonName><firstName>Sam</firstName><lastName>Sample</lastName></relatedPersonName>
+      <relatedPersonRelationshipList><relationship>Director</relationship></relatedPersonRelationshipList>
+    </relatedPersonInfo>
+  </relatedPersonsList>
+  <offeringData>
+    <industryGroup><industryGroupType>Other Technology</industryGroupType></industryGroup>
+    <issuerSize><revenueRange>Decline to Disclose</revenueRange></issuerSize>
+    <federalExemptionsExclusions><item>06b</item></federalExemptionsExclusions>
+    <typeOfFiling>
+      <newOrAmendment><isAmendment>false</isAmendment></newOrAmendment>
+      <dateOfFirstSale><value>2026-09-15</value></dateOfFirstSale>
+    </typeOfFiling>
+    <durationOfOffering><moreThanOneYear>false</moreThanOneYear></durationOfOffering>
+    <typesOfSecuritiesOffered><isEquityType>true</isEquityType><isPooledInvestmentFundType>false</isPooledInvestmentFundType></typesOfSecuritiesOffered>
+    <businessCombinationTransaction><isBusinessCombinationTransaction>false</isBusinessCombinationTransaction></businessCombinationTransaction>
+    <minimumInvestmentAccepted>0</minimumInvestmentAccepted>
+    <offeringSalesAmounts>
+      <totalOfferingAmount>15000000</totalOfferingAmount>
+      <totalAmountSold>12000000</totalAmountSold>
+      <totalRemaining>3000000</totalRemaining>
+    </offeringSalesAmounts>
+    <investors>
+      <hasNonAccreditedInvestors>false</hasNonAccreditedInvestors>
+      <totalNumberAlreadyInvested>9</totalNumberAlreadyInvested>
+    </investors>
+  </offeringData>
+</edgarSubmission>

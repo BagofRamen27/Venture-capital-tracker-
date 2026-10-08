@@ -1,0 +1,11 @@
+{
+  "hits": [
+    {"objectID": "41000001", "title": "Show HN: Hyperlane – Open-source API gateway for small teams", "url": "https://hyperlane.dev/", "points": 142, "num_comments": 51, "created_at_i": 1790000000, "author": "example1"},
+    {"objectID": "41000002", "title": "Launch HN: Tamarind Bio (YC W26) – Protein design tools for biologists", "url": "https://www.tamarind.bio/", "points": 88, "num_comments": 40, "created_at_i": 1790003600, "author": "example2"},
+    {"objectID": "41000003", "title": "Show HN: I built a tiny RSS reader in 200 lines", "url": "https://github.com/example/rss", "points": 300, "num_comments": 90, "created_at_i": 1790007200, "author": "example3"},
+    {"objectID": "41000004", "title": "Show HN: Quillstack – Write docs from your codebase", "url": "https://github.com/quillstack/quillstack", "points": 75, "num_comments": 12, "created_at_i": 1790010800, "author": "example4"},
+    {"objectID": "41000005", "title": "Show HN: Lowkey – A calmer inbox", "url": "https://lowkey.email/", "points": 4, "num_comments": 1, "created_at_i": 1790014400, "author": "example5"},
+    {"objectID": "41000006", "title": "Ask HN: Who is hiring?", "url": null, "points": 500, "num_comments": 900, "created_at_i": 1790018000, "author": "example6"}
+  ],
+  "nbPages": 1
+}

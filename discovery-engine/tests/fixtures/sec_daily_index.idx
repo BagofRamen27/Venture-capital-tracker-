@@ -1,0 +1,15 @@
+Description:           Daily Index of EDGAR Dissemination Feed by Form Type
+Last Data Received:    October 07, 2026
+Comments:              webmaster@sec.gov
+Anonymous FTP:         ftp://ftp.sec.gov/edgar/
+ 
+ 
+ 
+ 
+Form Type   Company Name                                                  CIK         Date Filed  File Name
+---------------------------------------------------------------------------------------------------------------------------------------------
+8-K         EXAMPLE PUBLIC CORP                                           1000001     20261007    edgar/data/1000001/0001000001-26-000010.txt
+D           ACME ROBOTICS, INC.                                           1999001     20261007    edgar/data/1999001/0001999001-26-000001.txt
+D           EXAMPLE GROWTH FUND II, L.P.                                  1999002     20261007    edgar/data/1999002/0001999002-26-000001.txt
+D/A         NORTHSTAR THERAPEUTICS INC                                    1999003     20261007    edgar/data/1999003/0001999003-26-000002.txt
+SC 13G      SOME HOLDER LLC                                               1000002     20261007    edgar/data/1000002/0001000002-26-000003.txt

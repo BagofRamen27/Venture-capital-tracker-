@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<edgarSubmission>
+  <submissionType>D/A</submissionType>
+  <primaryIssuer>
+    <cik>0001999003</cik>
+    <entityName>NORTHSTAR THERAPEUTICS INC</entityName>
+    <issuerAddress><city>CAMBRIDGE</city><stateOrCountry>MA</stateOrCountry><stateOrCountryDescription>MASSACHUSETTS</stateOrCountryDescription></issuerAddress>
+    <entityType>Corporation</entityType>
+    <yearOfInc><overFiveYears>true</overFiveYears></yearOfInc>
+  </primaryIssuer>
+  <offeringData>
+    <industryGroup><industryGroupType>Biotechnology</industryGroupType></industryGroup>
+    <typeOfFiling><newOrAmendment><isAmendment>true</isAmendment></newOrAmendment><dateOfFirstSale><value>2025-03-01</value></dateOfFirstSale></typeOfFiling>
+    <offeringSalesAmounts><totalOfferingAmount>40000000</totalOfferingAmount><totalAmountSold>38000000</totalAmountSold><totalRemaining>2000000</totalRemaining></offeringSalesAmounts>
+    <investors><hasNonAccreditedInvestors>false</hasNonAccreditedInvestors><totalNumberAlreadyInvested>22</totalNumberAlreadyInvested></investors>
+  </offeringData>
+</edgarSubmission>

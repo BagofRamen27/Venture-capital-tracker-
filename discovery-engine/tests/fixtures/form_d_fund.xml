@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<edgarSubmission>
+  <submissionType>D</submissionType>
+  <primaryIssuer>
+    <cik>0001999002</cik>
+    <entityName>EXAMPLE GROWTH FUND II, L.P.</entityName>
+    <issuerAddress><city>NEW YORK</city><stateOrCountry>NY</stateOrCountry><stateOrCountryDescription>NEW YORK</stateOrCountryDescription></issuerAddress>
+    <entityType>Limited Partnership</entityType>
+    <yearOfInc><withinFiveYears>true</withinFiveYears><value>2026</value></yearOfInc>
+  </primaryIssuer>
+  <offeringData>
+    <industryGroup>
+      <industryGroupType>Pooled Investment Fund</industryGroupType>
+      <investmentFundInfo><investmentFundType>Venture Capital Fund</investmentFundType><is40Act>false</is40Act></investmentFundInfo>
+    </industryGroup>
+    <issuerSize><aggregateNetAssetValueRange>Decline to Disclose</aggregateNetAssetValueRange></issuerSize>
+    <typeOfFiling><newOrAmendment><isAmendment>false</isAmendment></newOrAmendment><dateOfFirstSale><yetToOccur>true</yetToOccur></dateOfFirstSale></typeOfFiling>
+    <offeringSalesAmounts><totalOfferingAmount>Indefinite</totalOfferingAmount><totalAmountSold>0</totalAmountSold><totalRemaining>Indefinite</totalRemaining></offeringSalesAmounts>
+    <investors><hasNonAccreditedInvestors>false</hasNonAccreditedInvestors><totalNumberAlreadyInvested>0</totalNumberAlreadyInvested></investors>
+  </offeringData>
+</edgarSubmission>

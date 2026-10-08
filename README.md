@@ -23,6 +23,14 @@ Open the printed local address. For a quick syntax check:
 node --check dist/app.js
 ```
 
+## Discovery engine (backend)
+
+`discovery-engine/` is a free Python/FastAPI research engine that discovers startups from public
+news feeds, Hacker News and SEC Form D filings, scores evidence quality and research signals, and
+exports data in the format this dashboard reads. See [discovery-engine/README.md](discovery-engine/README.md).
+To connect it to this dashboard with OpenAI Codex, use
+[discovery-engine/docs/CODEX_PROMPT.md](discovery-engine/docs/CODEX_PROMPT.md).
+
 ## Project layout
 
 - `dist/index.html`: page shell and navigation.

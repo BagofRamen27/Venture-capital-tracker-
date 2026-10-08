@@ -1,0 +1,20 @@
+{
+  "_comment": "Weights are percentages and must add up to 100. Thresholds use the 0-100 score.",
+  "model_version": "1.0",
+  "weights": {
+    "market_opportunity": 20,
+    "business_traction": 20,
+    "funding_validation": 15,
+    "product_differentiation": 15,
+    "team_evidence": 10,
+    "growth_momentum": 10,
+    "financial_evidence": 10
+  },
+  "thresholds": {
+    "min_coverage": 0.5,
+    "strong": 75,
+    "promising": 60,
+    "watchlist": 45
+  },
+  "momentum_window_days": 90
+}
