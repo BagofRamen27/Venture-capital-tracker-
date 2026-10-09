@@ -61,5 +61,6 @@ window.createMarketUI = function ({ esc, render, track, count }) {
     if (b.id === 'track-market-detail') track(detail());
     if (b.dataset.marketOffset !== undefined) { m.offset = Number(b.dataset.marketOffset); render(); scrollTo(0, 0); }
   });
-  return { dashboard, financials };
+  const openFinancials = slug => { m.slug = slug; location.hash = 'financials'; render(); scrollTo(0, 0); };
+  return { dashboard, financials, openFinancials };
 };

@@ -28,6 +28,40 @@
     return { name, role: clean('role', 40) || 'Contributor', github, photo, joined, contribution: clean('contribution', 200) };
   }
 
+  // Map view: startups with a looked-up city (places.json) become points; the rest are left off the map.
+  function formatMoney(a) {
+    if (!a || a.value == null) return '';
+    const q = a.qualifier && a.qualifier !== 'exact' ? a.qualifier + ' ' : '';
+    return q + (a.currency || '') + ' ' + Number(a.value).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+  function mapPoints(discovery, market, places) {
+    const points = [], seen = new Set();
+    const add = (p, loc) => {
+      const key = p.name.trim().toLowerCase();
+      if (!loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lon) || seen.has(key)) return;
+      seen.add(key);
+      points.push({ ...p, lat: loc.lat, lon: loc.lon, place: loc.place || '', country: loc.country || '' });
+    };
+    for (const c of discovery?.companies || []) {
+      const lf = c.latest_funding || {}, tf = c.total_funding || {};
+      add({ kind: 'discovery', id: c.id, name: c.name || '', industry: c.industry || '', stage: c.funding_stage || '',
+        amount: lf.amount != null ? 'Latest round ' + lf.display : tf.amount != null ? 'Total ' + tf.display : '' },
+        places?.discovery?.[String(c.id)]);
+    }
+    for (const c of market?.companies || []) {
+      add({ kind: 'market', id: c.slug, name: c.name || '', industry: (c.industry || '').replaceAll('_', ' '), stage: c.stage || '',
+        amount: c.latestAmount?.value != null ? 'Latest round ' + formatMoney(c.latestAmount) : '', url: safeURL(c.sourceURL || ''),
+        detail: Boolean(market.details?.[c.slug]) },
+        places?.market?.[c.slug]);
+    }
+    return points;
+  }
+  function filterMapPoints(points, f = {}) {
+    const q = (f.q || '').trim().toLowerCase();
+    return points.filter(p => (!q || [p.name, p.industry, p.place].some(v => v.toLowerCase().includes(q)))
+      && (!f.country || p.country === f.country) && (!f.industry || p.industry.toLowerCase() === f.industry.toLowerCase()));
+  }
+
   function companyIdentity(record) { return new URL(record.website).hostname.toLowerCase().replace(/^www\./, ''); }
 
   function validateCompany(input) {
@@ -102,6 +136,6 @@
     return companies.filter(c => [c.name, c.website, c.industry, c.location].some(v => (v || '').toLowerCase().includes(s)));
   }
 
-  root.VentureScout = { STORAGE_KEY, STAGES, CONTRIBUTOR_PHOTO_MAX_BYTES, validateContributor, safeURL, companyIdentity, validateCompany, loadSaved, writeSaved,
+  root.VentureScout = { STORAGE_KEY, STAGES, CONTRIBUTOR_PHOTO_MAX_BYTES, validateContributor, formatMoney, mapPoints, filterMapPoints, safeURL, companyIdentity, validateCompany, loadSaved, writeSaved,
     upsertCompany, removeCompany, importBackup, filterDiscovery, searchMarket };
 })(typeof window !== 'undefined' ? window : globalThis);

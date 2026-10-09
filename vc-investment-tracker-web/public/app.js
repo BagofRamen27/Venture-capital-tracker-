@@ -226,7 +226,7 @@ let route = { view: "dashboard", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
   if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
-  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "contributors", "about"].includes(h)) return { view: h };
+  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "map", "contributors", "about"].includes(h)) return { view: h };
   return { view: "dashboard" };
 }
 function go(view, id) {
@@ -244,7 +244,7 @@ function render() {
   tip.hidden = true;
   const active = route.view === "profile" ? "directory" : route.view;
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, contributors: viewContributors, about: viewAbout }[route.view];
+  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, map: mapUI.view, contributors: viewContributors, about: viewAbout }[route.view];
   $("#app").innerHTML = v(route.id);
   document.title = route.view === "profile" ? BYID[route.id].company_name + " · VentureScout" : "VentureScout";
   updateLogCount();
@@ -808,6 +808,9 @@ const DISC = { data:null,status:null,error:'',statusError:'',loading:false,loade
 const account = window.ventureAccount || {companies:[],error:''};
 const options = (items,current,labels={}) => items.map(x=>`<option value="${esc(x)}" ${x===current?'selected':''}>${esc(labels[x]||x)}</option>`).join('');
 const marketUI=window.createMarketUI({esc,render:()=>render(),count:()=>account.companies.length,track:c=>startTracking(c)});
+const mapUI=window.createMapUI({esc,render:()=>render(),isActive:()=>route.view==='map',
+  openDiscovered:id=>{DISC.selected=id;go('discover');},
+  openMarket:p=>{if(p?.detail)marketUI.openFinancials(p.id);else if(p?.url)window.open(p.url,'_blank','noopener');}});
 function startTracking(c) {
   if(!c){toast('Company details are not available.');return;}
   SCOUT.form={name:c.name||'',website:c.website||'',industry:c.industry||'',location:c.location||c.headquarters||'',stage:STAGES.includes(c.stage||c.funding_stage)?(c.stage||c.funding_stage):'Not disclosed',notes:c.description||'',source:c.source||'VentureScout discovery',sourceURL:c.sourceURL||c.primary_source_url||''};

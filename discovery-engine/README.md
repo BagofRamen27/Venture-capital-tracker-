@@ -71,7 +71,7 @@ one-time setup. Locally, preview the result with `npm run dev` in `vc-investment
 | Command | What it does |
 |---|---|
 | `init-db` | Create database tables (safe to repeat) |
-| `run [--source KEY] [--group news\|funding\|community\|regulatory]` | Run discovery now |
+| `run [--source KEY] [--group news\|funding\|community\|video\|regulatory]` | Run discovery now |
 | `enrich [--limit N]` | Fill missing company facts from Wikidata |
 | `check-sources [--include-disabled]` | Test every source's URL; nothing is saved |
 | `serve [--scheduler] [--port 8000]` | Start the API |
@@ -81,6 +81,8 @@ one-time setup. Locally, preview the result with `npm run dev` in `vc-investment
 | `import-csv FILE` | Import companies from CSV (only `name`/`company_name` is required) |
 | `export-csv [DIR]` | Write `startups.csv`, `funding_rounds.csv`, `sec_filings.csv` |
 | `export-site [DIR]` | Write the website data files (discovery.json, news.json, status.json) |
+| `geocode [--max-new 60]` | Look up company cities on OpenStreetMap and write the map's `places.json` |
+| `export-hall [DIR]` | Write approved Hall of contributors requests (needs `GITHUB_TOKEN`, `GITHUB_REPOSITORY`) |
 | `print-schema [--postgres]` | Print the SQL schema |
 | `status` | Record counts and the last 10 jobs |
 
@@ -191,6 +193,17 @@ are stored. Search results are deleted after 30 days, as the YouTube Developer P
 `config/sources.json`, then in [Google Cloud Console](https://console.cloud.google.com/) create a project, enable
 **YouTube Data API v3**, create an **API key** (restrict it to that API), then set `VCD_YOUTUBE_API_KEY` in `.env`
 or the `YOUTUBE_API_KEY` repository secret. No billing account is needed.
+
+### Map locations
+`geocode` looks up the city each company record states (discovered companies: the city from SEC filings or
+Wikidata; StartupDB companies: their listed location) on [OpenStreetMap Nominatim](https://nominatim.org/) and writes
+`places.json` for the website's **Map** tab. Nothing is guessed: a company without a stated city, or whose location
+only names a state or country, is not placed. Each place is looked up once and cached in the `geocode_cache` table
+(places not found are retried after 90 days); new lookups are capped at 60 per run, one per second, as Nominatim's
+usage policy requires. Pins mark the city, not a street address. Locations © OpenStreetMap contributors (ODbL).
+
+The map itself uses [Leaflet](https://leafletjs.com/) and Leaflet.markercluster, bundled in
+`vc-investment-tracker-web/public/vendor/leaflet/` (BSD-2 and MIT licences included), with OpenStreetMap tiles.
 
 ### Data-confidence score (0–100)
 Identity (website, SEC CIK) + best source type + independent publishers + freshness + key fields filled −

@@ -113,6 +113,11 @@ jobs:
           python -m vcdiscovery.cli export-site
           python -m vcdiscovery.cli status
 
+      - name: Map locations (company cities on OpenStreetMap)
+        working-directory: discovery-engine
+        # New lookups only on data runs, whose database (and lookup cache) is saved; other runs reuse the cache.
+        run: python -m vcdiscovery.cli geocode --max-new ${{ env.COLLECT == 'true' && 60 || 0 }}
+
       - name: Hall of contributors (approved "Join the hall" requests)
         working-directory: discovery-engine
         env:

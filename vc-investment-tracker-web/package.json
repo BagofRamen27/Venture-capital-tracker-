@@ -8,7 +8,7 @@
     "build": "node scripts/build.mjs",
     "update-market": "node scripts/update-market.mjs",
     "test": "node --test",
-    "check": "node --check public/app.js && node --check public/market.js && node --check public/scout.js"
+    "check": "node --check public/app.js && node --check public/market.js && node --check public/scout.js && node --check public/map.js"
   },
   "engines": {
     "node": ">=20.11"
