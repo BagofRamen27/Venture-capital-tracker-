@@ -49,9 +49,9 @@ class PoliteClient:
         return self._request("GET", url, params=params, headers=headers, ok_statuses=ok_statuses)
 
     def post(self, url: str, data: dict | None = None, headers: dict | None = None,
-             auth: tuple[str, str] | None = None) -> httpx.Response:
-        """POST with the same politeness and retry rules (used for OAuth token requests)."""
-        return self._request("POST", url, data=data, headers=headers, auth=auth)
+             auth: tuple[str, str] | None = None, json: dict | None = None) -> httpx.Response:
+        """POST with the same politeness and retry rules (OAuth token requests, GitHub GraphQL)."""
+        return self._request("POST", url, data=data, headers=headers, auth=auth, json=json)
 
     def _request(self, method: str, url: str, ok_statuses: tuple[int, ...] = (), **kwargs) -> httpx.Response:
         host = urlsplit(url).hostname or ""

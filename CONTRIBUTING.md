@@ -14,3 +14,22 @@ money raised. Never commit keys, personal credentials, `.env` files, browser sto
 (`public/data/market.json`, `discovery.json`, `news.json`, `status.json`, `dist/`, `*.db`).
 
 Contributions to application code are provided under the repository's MIT license.
+
+## Join the Hall of contributors
+
+Everyone who helps build VentureScout can hang their portrait in the **Hall of contributors** tab on the website.
+
+1. Open the website's **Hall of contributors** tab and fill in **Join the hall** (name, role, what you contributed).
+2. **Continue on GitHub** opens a request with your details filled in. Drag a photo of yourself into the photo
+   box, tick the consent box and submit. (You can also open it directly: **Issues → New issue → Join the Hall of
+   contributors**.)
+3. The project owner reviews it and adds the `hall-approved` label. The website republishes within minutes and
+   your portrait appears, linked to your GitHub profile.
+
+Photos are cropped to a 4:5 portrait (480×600) and re-encoded, which removes location and camera data. Photos stay
+yours (they are not covered by the MIT license); you can ask for removal at any time by commenting on or closing your
+request. If you edit your request after it was approved, it is hidden until the owner approves it again.
+
+**For the owner:** to approve, add the `hall-approved` label to the request. To take a portrait down, remove the label
+or close the request as *not planned*. Long-standing entries can also be listed by hand in
+`vc-investment-tracker-web/public/contributors/contributors.json`, with the photo in the same folder.

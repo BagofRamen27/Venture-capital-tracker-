@@ -9,7 +9,7 @@ if (path.dirname(output) !== root) throw new Error('Invalid build target');
 fs.rmSync(output, { recursive: true, force: true });
 fs.cpSync(path.join(root, 'public'), output, { recursive: true });
 fs.writeFileSync(path.join(output, '.nojekyll'), ''); // serve files as-is on GitHub Pages
-for (const required of ['index.html', 'app.js', 'scout.js', 'market.js', 'app.css', 'data/config.json']) {
+for (const required of ['index.html', 'app.js', 'scout.js', 'market.js', 'app.css', 'data/config.json', 'contributors/contributors.json']) {
   if (!fs.existsSync(path.join(output, required))) throw new Error('Missing ' + required);
 }
 // Browsers cache scripts and styles for a while; a content hash in each URL makes them load the new

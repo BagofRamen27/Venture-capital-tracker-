@@ -150,6 +150,25 @@ def cmd_export_site(args):
             print(f"Wrote {path}")
 
 
+def cmd_export_hall(args):
+    import os
+
+    from .hall import export_hall
+    from .pipeline import make_client
+
+    token, repo = os.environ.get("GITHUB_TOKEN", ""), os.environ.get("GITHUB_REPOSITORY", "")
+    if not token or "/" not in repo:
+        print("Hall of contributors: GITHUB_TOKEN and GITHUB_REPOSITORY are not set; skipped.")
+        return
+    owner = os.environ.get("GITHUB_REPOSITORY_OWNER") or repo.split("/")[0]
+    try:
+        entries = export_hall(make_client(get_settings()), token, repo, owner, args.directory)
+    except Exception as exc:  # the site still builds; the hall shows the people listed in contributors.json
+        print(f"::warning::Hall of contributors not updated: {exc}")
+        return
+    print(f"Hall of contributors: {len(entries)} approved portrait(s) written to {args.directory}")
+
+
 def cmd_print_schema(_args):
     from sqlalchemy.dialects import postgresql, sqlite
     from sqlalchemy.schema import CreateIndex, CreateTable
@@ -214,6 +233,9 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("export-site", help="Write the website's data files (discovery.json, news.json, status.json)")
     p.add_argument("directory", nargs="?", default=str(BASE_DIR.parent / "vc-investment-tracker-web" / "public" / "data"))
     p.set_defaults(func=cmd_export_site)
+    p = sub.add_parser("export-hall", help="Write approved 'Join the hall' GitHub issues for the Hall of contributors")
+    p.add_argument("directory", nargs="?", default=str(BASE_DIR.parent / "vc-investment-tracker-web" / "public" / "contributors"))
+    p.set_defaults(func=cmd_export_hall)
     p = sub.add_parser("print-schema", help="Print the SQL schema")
     p.add_argument("--postgres", action="store_true")
     p.set_defaults(func=cmd_print_schema)

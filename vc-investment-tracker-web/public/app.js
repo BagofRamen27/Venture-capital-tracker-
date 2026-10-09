@@ -226,7 +226,7 @@ let route = { view: "dashboard", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
   if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
-  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "about"].includes(h)) return { view: h };
+  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "contributors", "about"].includes(h)) return { view: h };
   return { view: "dashboard" };
 }
 function go(view, id) {
@@ -244,7 +244,7 @@ function render() {
   tip.hidden = true;
   const active = route.view === "profile" ? "directory" : route.view;
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, about: viewAbout }[route.view];
+  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, contributors: viewContributors, about: viewAbout }[route.view];
   $("#app").innerHTML = v(route.id);
   document.title = route.view === "profile" ? BYID[route.id].company_name + " · VentureScout" : "VentureScout";
   updateLogCount();
@@ -888,7 +888,7 @@ function discoveredProfile(c) {
   <details><summary>Data confidence breakdown (${esc(c.confidence.score)}/100)</summary><ul>${(c.confidence_breakdown?.components||[]).map(p=>`<li>${esc(p.component)}: ${p.points>0?'+':''}${esc(p.points)} — ${esc(p.explanation)}</li>`).join('')}</ul></details></section>`;
 }
 /* ---------- ABOUT ---------- */
-const FOUNDER_PHOTO = "images/alexander-liu.jpg"; // add the photo at public/images/alexander-liu.jpg
+const FOUNDER_PHOTO = "contributors/alexander-liu.jpg";
 function viewAbout() {
   queueMicrotask(() => {
     const img = new Image();
@@ -915,6 +915,63 @@ function viewAbout() {
     <p class="note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
     <h2>Open source</h2>
     <p>VentureScout is open source under the MIT license. The code is public: <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">github.com/BagofRamen27/Venture-capital-tracker-</a>. Suggestions and contributions are welcome.</p>
+  </section>`;
+}
+
+/* ---------- HALL OF CONTRIBUTORS ---------- */
+const HALL = { list: null, error: '', loading: false };
+const HALL_JOIN = 'https://github.com/BagofRamen27/Venture-capital-tracker-/issues/new?template=join-the-hall.yml';
+async function loadContributors() {
+  if (HALL.loading || HALL.list) return;
+  HALL.loading = true;
+  // contributors.json is curated in the repository; hall.json holds approved "Join the hall" requests
+  // (written by each site build, absent until the first one is approved).
+  const get = async f => { const r = await fetch('contributors/' + f, { cache: 'no-cache' }); if (r.status === 404 && f === 'hall.json') return []; if (!r.ok) throw new Error('Could not load the contributor list.'); return (await r.json()).contributors || []; };
+  try {
+    const all = (await Promise.all([get('contributors.json'), get('hall.json')])).flat();
+    // A broken entry is skipped rather than hiding the whole hall, and each person appears once.
+    const seen = new Set();
+    HALL.list = all.flatMap(c => { try { return [VS.validateContributor(c)]; } catch { return []; } })
+      .filter(c => { const k = (c.github || c.name).toLowerCase(); return !seen.has(k) && seen.add(k); });
+  } catch (e) { HALL.error = e.message; }
+  HALL.loading = false;
+  if (route.view === 'contributors') render();
+}
+function joinHall(form) {
+  const f = new FormData(form), name = String(f.get('name') || '').trim();
+  if (!name) { form.querySelector('[name=name]').focus(); return; }
+  const q = new URLSearchParams({ title: 'Hall of contributors: ' + name, name, role: String(f.get('role') || '').trim(), contribution: String(f.get('contribution') || '').trim() });
+  window.open(HALL_JOIN + '&' + q.toString(), '_blank', 'noopener');
+}
+function viewContributors() {
+  queueMicrotask(() => {
+    loadContributors();
+    // A missing photo falls back to the initials painted underneath it.
+    document.querySelectorAll('.frame img').forEach(img => { const drop = () => img.remove(); if (img.complete && !img.naturalWidth) drop(); else img.addEventListener('error', drop); });
+  });
+  const initials = n => n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const since = j => j ? new Date(j.length === 7 ? j + '-01T00:00' : j + 'T00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : '';
+  const exhibit = c => `<figure class="exhibit">
+    <div class="frame"><div class="portrait"><span aria-hidden="true">${esc(initials(c.name))}</span>${c.photo ? `<img src="contributors/${encodeURIComponent(c.photo)}" alt="Portrait of ${esc(c.name)}" loading="lazy">` : ''}</div></div>
+    <figcaption class="plaque"><strong>${esc(c.name)}</strong><span class="plaque-role">${esc(c.role)}${c.joined ? ' · since ' + esc(since(c.joined)) : ''}</span>${c.contribution ? `<span class="plaque-text">${esc(c.contribution)}</span>` : ''}${c.github ? `<a href="https://github.com/${esc(c.github)}" target="_blank" rel="noopener">@${esc(c.github)}</a>` : ''}</figcaption>
+  </figure>`;
+  return `<div class="pagehead"><div><span class="eyebrow">Hall of contributors</span><h1>The people behind VentureScout</h1><p>VentureScout is open source. Everyone who helps build it can hang their portrait here.</p></div></div>
+  ${HALL.loading && !HALL.list ? '<div class="panel" role="status">Opening the hall…</div>' : ''}
+  ${HALL.error ? `<div class="panel" role="alert">${esc(HALL.error)}</div>` : ''}
+  ${HALL.list ? `<section class="hall" aria-label="Contributors">${HALL.list.map(exhibit).join('')}
+    <figure class="exhibit exhibit-empty"><div class="frame"><div class="portrait"><span aria-hidden="true">+</span></div></div>
+      <figcaption class="plaque"><strong>Your portrait here</strong><span class="plaque-text">Contributed to VentureScout? Join the hall below.</span><button type="button" class="link" data-scroll="join-hall">Join the hall</button></figcaption></figure>
+  </section>` : ''}
+  <section class="panel join-hall" id="join-hall" aria-labelledby="join-hall-h">
+    <h2 id="join-hall-h">Join the hall</h2>
+    <p>Helped build VentureScout? Add your portrait. Fill this in, then <b>Continue on GitHub</b> opens your request with these details filled in. Attach a photo of yourself there and submit. You need a free GitHub account.</p>
+    <form id="join-hall-form" class="fieldgrid">
+      <label>Name<input name="name" required maxlength="60" autocomplete="name"></label>
+      <label>Role<input name="role" maxlength="40" placeholder="Contributor"></label>
+      <label class="wide">What did you contribute?<textarea name="contribution" maxlength="200" placeholder="One or two sentences for your plaque"></textarea></label>
+      <div class="wide"><button class="btn primary" type="submit">Continue on GitHub</button></div>
+    </form>
+    <p class="note">Every request is reviewed by the project owner before it appears, usually with the next daily update. Your photo is cropped to a portrait and its location data removed. To have your portrait taken down, comment on your request or close it.</p>
   </section>`;
 }
 
@@ -953,6 +1010,7 @@ function saveCompany(c) {
 }
 document.addEventListener('submit',e=>{
   if(e.target.id==='company-form'){e.preventDefault();saveCompany({...SCOUT.form,...Object.fromEntries(new FormData(e.target))});}
+  if(e.target.id==='join-hall-form'){e.preventDefault();joinHall(e.target);}
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='tracked-stage'){SCOUT.stageFilter=e.target.value;render();}
@@ -969,6 +1027,7 @@ document.addEventListener('click',e=>{
   if(t.id==='backup-export'){const blob=new Blob([JSON.stringify({app:'VentureScout',exportedAt:new Date().toISOString(),companies:account.companies},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='venturescout-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);}
   if(t.dataset.disc){DISC.selected=Number(t.dataset.disc);render();document.getElementById('disc-profile')?.scrollIntoView();}
   if(t.id==='disc-close'){DISC.selected=null;render();}
+  if(t.dataset.scroll){const el=document.getElementById(t.dataset.scroll);el?.scrollIntoView({behavior:'smooth'});el?.querySelector('input')?.focus({preventScroll:true});}
   if(t.dataset.discTrack){startTracking(DISC.data.companies.find(c=>c.id===Number(t.dataset.discTrack)));}
   if(t.id==='disc-more'){DISC.limit+=60;render();}
 });

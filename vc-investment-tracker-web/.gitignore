@@ -10,3 +10,5 @@ public/data/market.json
 public/data/discovery.json
 public/data/news.json
 public/data/status.json
+public/contributors/hall.json
+public/contributors/hall-*.jpg

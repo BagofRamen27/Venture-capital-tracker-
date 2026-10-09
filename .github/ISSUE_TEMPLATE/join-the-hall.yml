@@ -1,0 +1,45 @@
+name: Join the Hall of contributors
+description: Add your name and portrait to the Hall of contributors on the VentureScout website.
+title: "Hall of contributors: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping build VentureScout! Fill this in and attach a photo of yourself.
+        The project owner reviews every request; your portrait appears on the website after approval
+        (usually with the next daily update). If you edit this issue after approval, it is hidden until re-approved.
+        Your GitHub username is shown with your portrait and links to your profile.
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: How your name should appear on your plaque.
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: Role
+      description: For example Contributor, Designer, Data researcher.
+      placeholder: Contributor
+  - type: textarea
+    id: contribution
+    attributes:
+      label: What did you contribute?
+      description: One or two sentences for your plaque (200 characters max).
+    validations:
+      required: true
+  - type: textarea
+    id: photo
+    attributes:
+      label: Photo of yourself
+      description: Drag a JPG or PNG photo of yourself into this box (only you in the picture; under 10 MB). It is cropped to a portrait and its location data is removed.
+    validations:
+      required: true
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Consent
+      options:
+        - label: This is a photo of me, and I agree to it and my name being shown publicly on the VentureScout website. I can ask for removal at any time.
+          required: true

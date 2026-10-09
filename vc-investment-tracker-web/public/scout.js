@@ -12,6 +12,22 @@
     } catch { return ''; }
   }
 
+  // Hall of contributors: entries come from public/contributors/contributors.json (added by pull request).
+  const CONTRIBUTOR_PHOTO_MAX_BYTES = 300 * 1024;
+  function validateContributor(input) {
+    const clean = (key, max) => typeof input?.[key] === 'string' ? input[key].trim().slice(0, max) : '';
+    const name = clean('name', 60);
+    if (!name) throw new Error('Each contributor needs a name.');
+    const github = clean('github', 39);
+    if (github && !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(github)) throw new Error(`${name}: "github" must be a GitHub username.`);
+    // Photos must be files in public/contributors/, never links to other sites.
+    const photo = clean('photo', 80);
+    if (photo && !/^[a-z0-9][a-z0-9._-]*\.(jpe?g|png|webp)$/i.test(photo)) throw new Error(`${name}: "photo" must be a .jpg, .png or .webp file name in public/contributors/.`);
+    const joined = clean('joined', 10);
+    if (joined && !/^\d{4}-\d{2}(-\d{2})?$/.test(joined)) throw new Error(`${name}: "joined" must look like 2026-10.`);
+    return { name, role: clean('role', 40) || 'Contributor', github, photo, joined, contribution: clean('contribution', 200) };
+  }
+
   function companyIdentity(record) { return new URL(record.website).hostname.toLowerCase().replace(/^www\./, ''); }
 
   function validateCompany(input) {
@@ -86,6 +102,6 @@
     return companies.filter(c => [c.name, c.website, c.industry, c.location].some(v => (v || '').toLowerCase().includes(s)));
   }
 
-  root.VentureScout = { STORAGE_KEY, STAGES, safeURL, companyIdentity, validateCompany, loadSaved, writeSaved,
+  root.VentureScout = { STORAGE_KEY, STAGES, CONTRIBUTOR_PHOTO_MAX_BYTES, validateContributor, safeURL, companyIdentity, validateCompany, loadSaved, writeSaved,
     upsertCompany, removeCompany, importBackup, filterDiscovery, searchMarket };
 })(typeof window !== 'undefined' ? window : globalThis);

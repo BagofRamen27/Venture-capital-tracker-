@@ -7,6 +7,9 @@
 #      Name: VCD_SEC_USER_AGENT   Value: Your Name your.email@example.com   (needed for SEC Form D data)
 #   3. Optional, for Reddit: secrets REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME
 #      (from a "script" app at https://www.reddit.com/prefs/apps). Reddit is skipped until they exist.
+#
+# Hall of contributors: adding the `hall-approved` label to a "Join the hall" issue republishes the site
+# with that contributor's portrait (see CONTRIBUTING.md).
 #   4. Optional, for YouTube search: secret YOUTUBE_API_KEY (free key from Google Cloud with the
 #      "YouTube Data API v3" enabled). The YouTube channel feeds need no key.
 #
@@ -20,11 +23,14 @@ on:
   push:
     branches: [main]
     paths: ["vc-investment-tracker-web/**", "discovery-engine/**", ".github/workflows/site.yml"]
+  issues:                   # Hall of contributors: republish when a "Join the hall" request is approved or changes
+    types: [labeled, unlabeled, edited, closed, reopened, deleted]
 
 permissions:
   contents: write   # save the database to the discovery-data branch
   pages: write
   id-token: write
+  issues: write     # read "Join the hall" requests and create the hall-approved label
 
 concurrency:
   group: site
@@ -34,8 +40,11 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Issue events only matter for approved Hall of contributors requests.
+    if: github.event_name != 'issues' || github.event.label.name == 'hall-approved' || contains(github.event.issue.labels.*.name, 'hall-approved')
     env:
-      COLLECT: ${{ github.event_name != 'push' }}   # a code push only republishes; it does not collect new data
+      # Only the daily schedule and "Run workflow" collect new data; code pushes and hall approvals just republish.
+      COLLECT: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -103,6 +112,15 @@ jobs:
           python -m vcdiscovery.cli init-db
           python -m vcdiscovery.cli export-site
           python -m vcdiscovery.cli status
+
+      - name: Hall of contributors (approved "Join the hall" requests)
+        working-directory: discovery-engine
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create hall-approved --color C9A227 --description "Approved for the Hall of contributors" 2>/dev/null || true
+          python -m vcdiscovery.cli export-hall
 
       - name: Save data for the next run
         if: env.COLLECT == 'true'
