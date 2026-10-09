@@ -814,7 +814,7 @@ function startTracking(c) {
   SCOUT.saveError='';go('tracking');
 }
 const GITHUB_ACTIONS='https://github.com/BagofRamen27/Venture-capital-tracker-/actions/workflows/site.yml';
-const EVIDENCE_LABEL={regulatory_filing:'SEC filing',confirmed:'Corroborated',company_announced:'Company-announced',reported:'Reported (1 source)',analyst_entered:'Analyst-entered',target:'Target (not raised)',rumor:'Rumour (unconfirmed)'};
+const EVIDENCE_LABEL={regulatory_filing:'SEC filing',confirmed:'Corroborated',company_announced:'Company-announced',reported:'Reported (1 source)',analyst_entered:'Analyst-entered',target:'Target (not raised)',rumor:'Rumour (unconfirmed)',community_sourced:'Community-sourced (Wikidata)'};
 const evBadge=st=>st?`<span class="b ${st==='confirmed'||st==='regulatory_filing'?'b-ok':st==='rumor'||st==='target'?'b-conf':'b-unv'}" tabindex="0" data-tip="${esc(DISC.data?.evidence_statuses?.[st]||'')}">${esc(EVIDENCE_LABEL[st]||st)}</span>`:'';
 const confB=c=>c?.label?`<span class="b b-${esc(c.label.toLowerCase())}" tabindex="0" data-tip="Data confidence ${esc(c.score)}/100: how well-supported this record is, not investment quality">${esc(c.label)} confidence</span>`:'';
 const scoreB=s=>s?.total!=null?`<span class="b b-plain" tabindex="0" data-tip="Preliminary research indicator (coverage ${Math.round((s.coverage||0)*100)}% of weights). Not an investment recommendation.">Score ${esc(s.total)} · ${esc(s.rating)}</span>`:'';
@@ -843,7 +843,7 @@ function viewDiscover() {
     <label>Search<input name="q" value="${esc(f.q)}" placeholder="Name, industry, city…" maxlength="100"></label>
     <label>Industry<select name="industry"><option value="">All</option>${options(uniq('industry'),f.industry)}</select></label>
     <label>Funding stage<select name="stage"><option value="">All</option>${options(uniq('funding_stage'),f.stage)}</select></label>
-    <label>Funding evidence<select name="evidence"><option value="">All</option>${options(Object.keys(EVIDENCE_LABEL),f.evidence,EVIDENCE_LABEL)}</select></label>
+    <label>Funding evidence<select name="evidence"><option value="">All</option>${options(Object.keys(EVIDENCE_LABEL).filter(k=>k!=='community_sourced'),f.evidence,EVIDENCE_LABEL)}</select></label>
     <label>Min. data confidence<select name="minConfidence">${options(['','45','70'],f.minConfidence,{'':'Any','45':'Medium or higher','70':'High'})}</select></label>
     <label>Min. score<select name="minScore">${options(['','45','60','75'],f.minScore,{'':'Any','45':'45+','60':'60+','75':'75+'})}</select></label>
     <label>Sort by<select name="sort">${options(['newest','score','confidence','funding','name'],f.sort,{newest:'Newest discovered',score:'Investment score',confidence:'Data confidence',funding:'Latest funding amount',name:'Name'})}</select></label>

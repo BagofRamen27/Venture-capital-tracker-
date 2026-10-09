@@ -37,6 +37,20 @@ def cmd_run(args):
         print("No sources ran. Check config/sources.json and your .env file.")
 
 
+def cmd_enrich(args):
+    from .pipeline import make_client
+    from .wikidata import run_enrichment
+
+    settings = _setup()
+    client = make_client(settings)
+    try:
+        result = run_enrichment(settings, client, limit=args.limit)
+    finally:
+        client.close()
+    print(f"  wikidata  {result['status']}  checked={result.get('checked', 0)} matched={result.get('matched', 0)} "
+          f"fields_filled={result.get('fields_filled', 0)}" + (f"  ERROR: {result['error']}" if result.get("error") else ""))
+
+
 def cmd_check_sources(args):
     """Fetch each source once (nothing is saved) to confirm it is reachable and returns data."""
     from .http import SourceUnavailable
@@ -175,6 +189,9 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--source", action="append", help="Source key (repeatable). Default: all enabled")
     p.add_argument("--group", action="append", help="news | funding | community | regulatory (repeatable)")
     p.set_defaults(func=cmd_run)
+    p = sub.add_parser("enrich", help="Fill missing company facts from Wikidata")
+    p.add_argument("--limit", type=int, default=None, help="Companies to look up (default: VCD_WIKIDATA_MAX_LOOKUPS)")
+    p.set_defaults(func=cmd_enrich)
     p = sub.add_parser("check-sources", help="Test that each source is reachable (saves nothing)")
     p.add_argument("--include-disabled", action="store_true")
     p.set_defaults(func=cmd_check_sources)

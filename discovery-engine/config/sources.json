@@ -22,6 +22,16 @@
       "access_notes": "Free public data. SEC requires a User-Agent with your name and email and max 10 requests/second (https://www.sec.gov/os/accessing-edgar-data)."
     },
     {
+      "key": "wikidata",
+      "name": "Wikidata (company facts)",
+      "type": "wikidata",
+      "group": "enrichment",
+      "enabled": true,
+      "url": "https://www.wikidata.org/w/api.php",
+      "publisher": "Wikidata",
+      "access_notes": "Official MediaWiki API; data is public domain (CC0). Fills missing website, founding year, founders, HQ, industry and description for companies already discovered. Never overwrites existing values."
+    },
+    {
       "key": "techcrunch_funding",
       "name": "TechCrunch: Funding tag",
       "type": "rss",

@@ -6,7 +6,8 @@ Data files are generated once a day by `.github/workflows/site.yml`; see the [ma
 ## Sections
 
 - **Discover**: companies found automatically by the [discovery engine](../discovery-engine/README.md) in startup news,
-  press releases, Hacker News launches and SEC Form D filings. Each company shows funding evidence labels
+  press releases, Hacker News launches and SEC Form D filings, with missing facts
+  (website, founders, HQ, founding year) filled from Wikidata where a confident match exists. Each company shows funding evidence labels
   (SEC filing, corroborated, company-announced, single-source report, target, rumour), a data-confidence rating,
   a preliminary investment score with the evidence behind each factor, risks, news and source citations.
 - **My startups**: your own list. Add companies by hand or with **Track**. Saved in this browser only; use

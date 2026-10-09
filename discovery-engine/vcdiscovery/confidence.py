@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from .models import Citation, DuplicateCandidate, SecFiling, Startup, utcnow
 
-SOURCE_TYPE_POINTS = {"regulatory": 25, "news": 18, "press_release": 14, "analyst": 12, "community": 8}
+SOURCE_TYPE_POINTS = {"regulatory": 25, "news": 18, "press_release": 14, "analyst": 12, "open_data": 10, "community": 8}
 KEY_FIELDS = ["website", "industry", "description", "hq_city", "founded_year", "funding_stage", "founders"]
 
 

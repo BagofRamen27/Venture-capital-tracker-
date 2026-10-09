@@ -29,7 +29,9 @@ class Settings(BaseSettings):
     # "Your Name your.email@example.com". The SEC source is skipped until this is set.
     sec_user_agent: str = ""
     # Generic identifier sent to every other website.
-    http_user_agent: str = "VCDiscoveryEngine/0.1 (personal research project)"
+    http_user_agent: str = (
+        "VCDiscoveryEngine/0.1 (open-source startup research; https://github.com/BagofRamen27/Venture-capital-tracker-)"
+    )
     http_timeout_seconds: float = 20.0
     http_min_interval_seconds: float = 1.0  # minimum pause between calls to the same website
     sec_min_interval_seconds: float = 0.25  # SEC allows up to 10 requests/second; we stay well below
@@ -48,6 +50,7 @@ class Settings(BaseSettings):
     sec_max_filings_per_run: int = 150
     stale_after_days: int = 180
     job_lock_minutes: int = 60
+    wikidata_max_lookups: int = 60  # companies looked up per run (about 2-3 requests each)
 
     @field_validator("sec_user_agent", "http_user_agent", mode="before")
     @classmethod

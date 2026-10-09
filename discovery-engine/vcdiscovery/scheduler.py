@@ -4,6 +4,7 @@ Default schedule (times in UTC):
 * news          daily 06:00   startup news RSS feeds
 * funding       daily 06:30   funding-focused RSS feeds and press-release wires
 * sec           daily 07:00   SEC Form D filings from the previous business days
+* enrich        daily 07:30   Wikidata facts for companies with missing fields
 * community     every 6 hours Hacker News Show HN / Launch HN
 * scores        Monday 08:00  investment score refresh
 
@@ -32,6 +33,7 @@ JOBS = {
     "funding": {"groups": ["funding"], "trigger": CronTrigger(hour=6, minute=30)},
     "sec": {"groups": ["regulatory"], "trigger": CronTrigger(hour=7, minute=0)},
     "community": {"groups": ["community"], "trigger": CronTrigger(hour="*/6", minute=15)},
+    "enrich": {"groups": None, "trigger": CronTrigger(hour=7, minute=30)},
     "scores": {"groups": None, "trigger": CronTrigger(day_of_week="mon", hour=8, minute=0)},
 }
 
@@ -39,6 +41,15 @@ JOBS = {
 def run_job(name: str, settings: Settings, trigger: str = "scheduled") -> dict:
     if name == "scores":
         return run_score_refresh(settings, trigger)
+    if name == "enrich":
+        from .pipeline import make_client
+        from .wikidata import run_enrichment
+
+        client = make_client(settings)
+        try:
+            return run_enrichment(settings, client, trigger=trigger)
+        finally:
+            client.close()
     job = JOBS[name]
     return run_discovery(settings, groups=job["groups"], trigger=trigger)
 

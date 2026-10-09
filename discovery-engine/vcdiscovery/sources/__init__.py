@@ -33,6 +33,8 @@ def build_sources(settings: Settings, keys: list[str] | None = None, groups: lis
         elif kind == "hackernews":
             sources.append(HackerNewsSource(key=key, name=cfg["name"], lookback_hours=settings.hn_lookback_hours,
                                             min_points=settings.hn_min_points))
+        elif kind == "wikidata":
+            continue  # enrichment, not discovery: runs in `python -m vcdiscovery.cli enrich`
         elif kind == "sec_form_d":
             if not settings.sec_user_agent.strip() or "@" not in settings.sec_user_agent:
                 skipped.append({"key": key, "reason": "Set VCD_SEC_USER_AGENT to 'Your Name your@email' (SEC requirement)"})

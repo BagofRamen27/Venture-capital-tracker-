@@ -45,6 +45,7 @@ EVIDENCE_STATUSES = {
     "analyst_entered": "Entered or imported by an analyst; check the cited source.",
     "target": "Amount the company is seeking or aims to raise. Not money raised.",
     "rumor": "Unconfirmed report (e.g. 'in talks', 'reportedly'). Never treated as raised.",
+    "community_sourced": "From a community-edited open database (Wikidata). Useful context; check the linked item.",
 }
 # Statuses that may be counted as capital actually raised.
 RAISED_STATUSES = {"confirmed", "company_announced", "reported", "analyst_entered"}
