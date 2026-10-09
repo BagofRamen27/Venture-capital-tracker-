@@ -272,3 +272,8 @@ details.raw dd { margin: 0; overflow-wrap: anywhere; }
 .market-facts{margin:10px 0}.market-facts dt{color:var(--muted);font-size:14px}.market-facts dd{margin:4px 0 12px}.news-list article,.funding-round{padding:16px 0;border-top:1px solid var(--line)}.funding-round p{overflow-wrap:anywhere}.kpi .v{overflow-wrap:anywhere}
 
 #disc-filters{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}#disc-filters label{display:flex;flex-direction:column;gap:6px}#disc-filters input,#disc-filters select{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:inherit}
+
+.founder{display:flex;gap:24px;align-items:center}.founder h2{margin:0}.founder .eyebrow{margin:2px 0 10px}.founder p{margin:0 0 8px}
+.founder-photo{width:120px;height:120px;border-radius:50%;flex:none;object-fit:cover}
+.founder-initials{display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);font-size:40px;font-weight:600;letter-spacing:1px}
+@media(max-width:560px){.founder{flex-direction:column;text-align:center}}
