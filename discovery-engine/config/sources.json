@@ -211,11 +211,33 @@
       "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
     },
     {
+      "key": "youtube_this_week_in_startups",
+      "name": "YouTube: This Week in Startups",
+      "type": "rss",
+      "group": "video",
+      "source_type": "video",
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCkkhmBWfS7pILYIk0izkc3A",
+      "publisher": "This Week in Startups",
+      "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
+    },
+    {
+      "key": "youtube_cnbc_television",
+      "name": "YouTube: CNBC Television",
+      "type": "rss",
+      "group": "video",
+      "source_type": "video",
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCrp_UI8XtuYfpiqluWLD7Lw",
+      "publisher": "CNBC",
+      "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
+    },
+    {
       "key": "youtube_search",
       "name": "YouTube search (startup funding videos)",
       "type": "youtube_search",
       "group": "video",
-      "enabled": true,
+      "enabled": false,
       "url": "https://www.googleapis.com/youtube/v3/search",
       "publisher": "YouTube",
       "queries": [
@@ -224,7 +246,8 @@
         "Launch YC startup",
         "startup demo day pitch"
       ],
-      "access_notes": "Official YouTube Data API v3 with a free key (4 searches a day, 400 of 10,000 free quota units). Stores titles, links, channel names and short descriptions only, and deletes them after 30 days (YouTube API policy). Links videos to companies already tracked; never creates new companies. Uses YouTube API Services: https://www.youtube.com/t/terms"
+      "access_notes": "Official YouTube Data API v3 with a free key (4 searches a day, 400 of 10,000 free quota units). Stores titles, links, channel names and short descriptions only, and deletes them after 30 days (YouTube API policy). Links videos to companies already tracked; never creates new companies. Uses YouTube API Services: https://www.youtube.com/t/terms",
+      "disabled_reason": "Optional, off: needs a free Google Cloud API key (YOUTUBE_API_KEY secret, see README). The YouTube channel feeds need no key."
     },
     {
       "key": "yc_directory",
