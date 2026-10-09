@@ -59,12 +59,22 @@ class WikidataFacts:
     aliases: list[str] = field(default_factory=list)
 
 
+MAXLAG_ATTEMPTS = 4
+
+
 def _api(client: PoliteClient, **params) -> dict:
-    resp = client.get(API, params={**params, "format": "json", "maxlag": "5"})
-    data = resp.json()
-    if "error" in data:
-        raise SourceUnavailable(f"Wikidata API error: {data['error'].get('code')} {data['error'].get('info', '')}".strip())
-    return data
+    for attempt in range(MAXLAG_ATTEMPTS):
+        resp = client.get(API, params={**params, "format": "json", "maxlag": "5"})
+        data = resp.json()
+        error = data.get("error")
+        if not error:
+            return data
+        if error.get("code") == "maxlag" and attempt < MAXLAG_ATTEMPTS - 1:
+            # Wikidata's servers are busy: wait as asked (Retry-After) and try again, per API etiquette.
+            retry_after = resp.headers.get("Retry-After", "")
+            client.pause(min(float(retry_after) if retry_after.isdigit() else 5, 30))
+            continue
+        raise SourceUnavailable(f"Wikidata API error: {error.get('code')} {error.get('info', '')}".strip())
 
 
 def _claims(entity: dict, prop: str) -> list[dict]:

@@ -112,6 +112,19 @@ def test_sec_source_fetch_skips_weekends_missing_days_and_known_filings():
     assert not any("1999002" in c and "primary_doc" in c for c in calls)
 
 
+def test_sec_unpublished_index_403_is_skipped_when_older_days_load():
+    # EDGAR answers 403 for yesterday's index until it is published (about 10 pm US Eastern)
+    routes = {**sec_routes(), daily_index_url(date(2026, 10, 8)): 403}
+    items = SecFormDSource(lookback_days=3, today=lambda: date(2026, 10, 9)).fetch(make_client(routes))
+    assert len(items) == 3
+
+
+def test_sec_403_on_every_index_means_access_refused():
+    src = SecFormDSource(lookback_days=3, today=lambda: date(2026, 10, 9))
+    with pytest.raises(SourceUnavailable, match="refused access"):
+        src.fetch(make_client({"https://www.sec.gov/Archives/edgar/daily-index/": 403}))
+
+
 def test_polite_client_retries_then_succeeds_and_refuses_403():
     attempts = {"n": 0}
 

@@ -79,5 +79,9 @@ class PoliteClient:
             return resp
         raise SourceUnavailable(f"{url} unavailable after {self.max_retries + 1} attempts ({last_error})")
 
+    def pause(self, seconds: float) -> None:
+        """Wait when a source asks us to (for example Wikidata's maxlag)."""
+        self._sleep(seconds)
+
     def close(self) -> None:
         self._client.close()

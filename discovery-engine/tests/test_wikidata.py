@@ -47,13 +47,14 @@ ENTITIES = {
 SEARCH = {"Acme Robotics": ["Q1001", "Q1002"], "Nova": ["Q1101", "Q1102"]}
 
 
-def wikidata_api(calls, error=False):
+def wikidata_api(calls, error=False, lagged=0):
     def handler(request: httpx.Request) -> httpx.Response:
         q = {k: v[0] for k, v in parse_qs(urlsplit(str(request.url)).query).items()}
         calls.append(q)
         assert q["maxlag"] == "5" and q["format"] == "json"
-        if error:
-            return httpx.Response(200, json={"error": {"code": "maxlag", "info": "Waiting for a database server"}})
+        if error or len(calls) <= lagged:
+            return httpx.Response(200, headers={"Retry-After": "5"},
+                                  json={"error": {"code": "maxlag", "info": "Waiting for a database server"}})
         if q["action"] == "wbsearchentities":
             return httpx.Response(200, json={"search": [{"id": i, "label": ENTITIES[i]["labels"]["en"]["value"]}
                                                         for i in SEARCH.get(q["search"], [])]})
@@ -160,3 +161,13 @@ def test_parse_entity_skips_deprecated_and_imprecise_values():
                             "rank": "normal"}]
     facts = parse_entity(e)
     assert facts.website == "https://best.example" and facts.founded_year is None
+
+
+def test_maxlag_waits_and_retries(settings):
+    sid = add("Acme Robotics")
+    calls, waits = [], []
+    client = make_client(wikidata_api(calls, lagged=2))
+    client.pause = waits.append
+    result = run_enrichment(settings, client)
+    assert result["status"] == "success" and waits == [5, 5]
+    assert get(sid).founders
