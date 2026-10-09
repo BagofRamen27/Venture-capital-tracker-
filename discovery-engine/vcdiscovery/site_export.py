@@ -27,7 +27,7 @@ from .models import (
 from .pipeline import latest_success
 from .scheduler import describe
 from .scoring import FACTORS, METHODS
-from .sources import load_source_configs
+from .sources import configuration_problem, load_source_configs
 
 MAX_COMPANIES = 1000
 MAX_NEWS = 150
@@ -76,11 +76,12 @@ def build_site_data(session: Session, settings: Settings) -> dict[str, dict]:
     sources = []
     for cfg in load_source_configs(settings):
         last = session.scalar(select(JobRun).where(JobRun.source_key == cfg["key"]).order_by(JobRun.started_at.desc()))
-        health = "disabled" if not cfg.get("enabled") else (
+        problem = configuration_problem(cfg, settings) if cfg.get("enabled") else None
+        health = "disabled" if not cfg.get("enabled") else "needs_configuration" if problem else (
             "never_run" if not last else ("ok" if last.status in ("success", "partial") else last.status))
         sources.append({"key": cfg["key"], "name": cfg["name"], "group": cfg["group"], "health": health,
                         "last_success": ser.iso(last_ok.get(cfg["key"])),
-                        "last_error": last.error_message if last and last.status == "failed" else None,
+                        "last_error": problem or (last.error_message if last and last.status == "failed" else None),
                         "access_notes": cfg.get("access_notes"), "disabled_reason": cfg.get("disabled_reason")})
     status = {
         "generated_at": now, "sources": sources, "schedule": describe(),

@@ -40,7 +40,7 @@ from ..pipeline import add_citation, latest_success, link_filing, run_discovery
 from ..resolution import merge_startups
 from ..scheduler import build_scheduler, describe, run_score_refresh
 from ..scoring import FACTORS, METHODS, load_config, save_weights, score_startup
-from ..sources import load_source_configs
+from ..sources import configuration_problem, load_source_configs
 from ..text import company_domain, normalize_company_name
 from . import serializers as ser
 
@@ -419,7 +419,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             health = "never_run" if not last else ("ok" if last.status in ("success", "partial") else last.status)
             if not cfg.get("enabled"):
                 health = "disabled"
-            elif cfg["type"] == "sec_form_d" and "@" not in settings.sec_user_agent:
+            elif configuration_problem(cfg, settings):
                 health = "needs_configuration"
             out.append({"key": cfg["key"], "name": cfg["name"], "group": cfg["group"], "enabled": cfg.get("enabled", False),
                         "health": health, "last_success": ser.iso(last_ok.get(cfg["key"])),

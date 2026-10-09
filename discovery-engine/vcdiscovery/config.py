@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     job_lock_minutes: int = 60
     wikidata_max_lookups: int = 60  # companies looked up per run (about 2-3 requests each)
 
+    # Reddit Data API (register a "script" app at https://www.reddit.com/prefs/apps). Left empty = Reddit is skipped.
+    reddit_client_id: str = ""
+    reddit_client_secret: str = ""
+    reddit_username: str = ""
+    reddit_min_score: int = 5
+    reddit_posts_per_subreddit: int = 50
+
     @field_validator("sec_user_agent", "http_user_agent", mode="before")
     @classmethod
     def _clean_header(cls, value):

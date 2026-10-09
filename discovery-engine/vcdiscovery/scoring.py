@@ -56,7 +56,7 @@ METHODS = {
     "team_evidence": "Founders publicly named 40 (or executives listed on Form D 30); accelerator acceptance +20 "
                      "(e.g. Y Combinator). Capped at 70 automatically; founder experience needs analyst review.",
     "growth_momentum": "Distinct activity events (one per type per week) in the last 90 days: 20 each, plus up to 30 for community "
-                       "attention on Hacker News (log scale). 10 if activity exists but none in the last 90 days.",
+                       "attention on Hacker News or Reddit (log scale). 10 if activity exists but none in the last 90 days.",
     "financial_evidence": "Disclosed revenue 70 (+15 if corroborated); Form D with at least half of the offering sold 50, "
                           "otherwise 30. Unscorable when nothing is disclosed (does not penalise pre-revenue companies).",
 }
@@ -212,7 +212,7 @@ def factor_momentum(ctx: Context):
     types = sorted({t for t, _ in recent})
     evidence = [_ev(f"{len(recent)} distinct event-weeks in last {ctx.momentum_days} days ({', '.join(types)})")]
     if hn:
-        evidence.append(_ev(f"Hacker News attention: {points} points"))
+        evidence.append(_ev(f"Community attention (Hacker News / Reddit): {points} points on the top post"))
     return min(100.0, 20 * len(recent) + hn), evidence, None
 
 

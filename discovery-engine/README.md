@@ -114,7 +114,8 @@ Configured in `config/sources.json`. Set `"enabled": true/false` to switch a sou
 | TechCrunch (Venture, Startups), Crunchbase News, FinSMEs, EU-Startups, VentureBeat | Public RSS feeds; headline, link and ≤500-char summary only | Enabled |
 | PR Newswire (venture capital list) | Public RSS of press releases (labelled *company_announced*) | Enabled |
 | Sifted, Business Wire | Feed URL must be confirmed/chosen by you | Disabled |
-| Product Hunt, Reddit, YC directory | Need API approval/terms review, or have no public API | Not implemented (Phase 4) |
+| Reddit (official Data API, read-only) | Free for non-commercial use; needs a registered "script" app and Reddit's approval | Enabled once `VCD_REDDIT_*` credentials are set |
+| Product Hunt, YC directory | Need API approval/terms review, or have no public API | Not implemented (Phase 4) |
 
 **Rules the code follows:** it never downloads full articles, never bypasses paywalls, logins,
 CAPTCHAs or rate limits, identifies itself, waits between requests, and honours `Retry-After`.
@@ -156,6 +157,19 @@ founding year, founders, headquarters, country, industry and description. A Wiki
 its official website matches the company's known website, or, when no website is known, if it is the only
 company-like item with exactly that name. Each filled field is cited as `community_sourced` with a link to the
 item. Matched companies are not looked up again; unmatched ones are re-checked after 30 days.
+
+### Reddit
+With credentials set, each run reads the newest posts in r/startups, r/SaaS, r/venturecapital, r/SideProject,
+r/ycombinator and r/EntrepreneurRideAlong (list in `config/sources.json`). Posts below 5 points, NSFW and removed
+posts are skipped. Only the title, link, score, comment count and subreddit are stored (no post text, no
+usernames). Posts link to companies you already track (by website link or exact name) and count towards community
+attention; Reddit never creates new companies. Posts stored in the last 60 days are re-checked each run and
+deleted from the database if they were deleted or removed on Reddit.
+
+**Setup:** sign in to Reddit, accept the Data API Terms (request access if Reddit asks), create a **script** app
+at https://www.reddit.com/prefs/apps, then set `VCD_REDDIT_CLIENT_ID`, `VCD_REDDIT_CLIENT_SECRET` and
+`VCD_REDDIT_USERNAME` in `.env` (locally) or the `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` and `REDDIT_USERNAME`
+repository secrets (GitHub). Until then the Data status page shows Reddit as "needs configuration".
 
 ### Data-confidence score (0–100)
 Identity (website, SEC CIK) + best source type + independent publishers + freshness + key fields filled −
@@ -251,4 +265,4 @@ the API, CSV round-trips, and the website data export.
 - Company websites are only known from Hacker News links, CSV or manual edits; news headlines don't include them.
 - Form D matching to news companies uses exact names; anything fuzzy goes to manual review.
 - The market factor is a proxy for investor activity, not a market-size estimate.
-- Not yet: GDELT, SBIR/USAspending grants, Reddit, Product Hunt, investor-relationship maps (Phases 2–4).
+- Not yet: GDELT, SBIR/USAspending grants, Product Hunt, investor-relationship maps (Phases 2–4).
