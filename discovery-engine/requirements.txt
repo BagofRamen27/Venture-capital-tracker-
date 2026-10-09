@@ -8,6 +8,7 @@ APScheduler==3.11.3
 pydantic==2.13.5
 pydantic-settings==2.15.0
 python-multipart==0.0.32
+pillow==12.3.0  # Hall of contributors: resizes portraits and strips photo metadata
 
 # Testing
 pytest==9.1.1
