@@ -13,14 +13,14 @@ class NewsItem:
     """A headline from an RSS feed, press-release wire or community site."""
 
     source_key: str
-    source_type: str  # news | press_release | community
+    source_type: str  # news | press_release | video | community
     publisher: str
     url: str
     title: str
     summary: str | None = None
     published_at: datetime | None = None
     community_metrics: dict | None = None  # e.g. {"points": 120, "comments": 40, "discussion_url": ...}
-    category: str = "news"  # news | funding | press_release | community
+    category: str = "news"  # news | funding | press_release | video | community
 
 
 @dataclass
@@ -63,6 +63,6 @@ class FormDItem:
 class Source(Protocol):
     key: str
     name: str
-    group: str  # news | funding | community | regulatory
+    group: str  # news | funding | community | video | regulatory
 
     def fetch(self, client: PoliteClient) -> list[NewsItem] | list[FormDItem]: ...

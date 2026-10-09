@@ -34,6 +34,7 @@ from .resolution import record_duplicate, resolve_or_create, similar_names, simi
 from .sources import build_sources
 from .sources.base import FormDItem, NewsItem
 from .sources.reddit import RedditSource
+from .sources.youtube import YouTubeSearchSource
 from .sources.sec_formd import INDUSTRY_LABELS, SecFormDSource, assess_candidate, review_flags
 from .text import canonical_url, company_domain, display_name, normalize_company_name, title_fingerprint
 
@@ -459,13 +460,28 @@ def purge_reddit_posts(source_key: str, reddit_ids: list[str]) -> int:
         return 0
     wanted = set(reddit_ids)
     with session_scope() as session:
-        articles = [a for a in session.scalars(select(NewsArticle).where(NewsArticle.source_key == source_key))
-                    if (a.community_metrics or {}).get("reddit_id") in wanted]
-        for a in articles:
-            for sig in session.scalars(select(DiscoverySignal).where(DiscoverySignal.article_id == a.id)):
-                session.delete(sig)
-            session.delete(a)
-        return len(articles)
+        return _delete_articles(session, [a for a in session.scalars(select(NewsArticle).where(NewsArticle.source_key == source_key))
+                                          if (a.community_metrics or {}).get("reddit_id") in wanted])
+
+
+YOUTUBE_API_RETENTION_DAYS = 30
+
+
+def purge_expired_youtube(source_key: str) -> int:
+    """YouTube API data may be stored for 30 days at most (YouTube Developer Policies): delete older results."""
+    cutoff = utcnow() - timedelta(days=YOUTUBE_API_RETENTION_DAYS)
+    with session_scope() as session:
+        return _delete_articles(session, list(session.scalars(select(NewsArticle).where(
+            NewsArticle.source_key == source_key, NewsArticle.retrieved_at < cutoff))))
+
+
+def _delete_articles(session: Session, articles: list[NewsArticle]) -> int:
+    """Delete articles together with the signals quoting their titles."""
+    for a in articles:
+        for sig in session.scalars(select(DiscoverySignal).where(DiscoverySignal.article_id == a.id)):
+            session.delete(sig)
+        session.delete(a)
+    return len(articles)
 
 
 def make_sec_client(settings: Settings) -> PoliteClient:
@@ -500,6 +516,9 @@ def run_source(source, client: PoliteClient, settings: Settings, trigger: str,
             source.stored_ids = stored_reddit_ids(source.key)
             items = source.fetch(client)
             result["removed"] = purge_reddit_posts(source.key, source.removed_ids)
+        elif isinstance(source, YouTubeSearchSource):
+            items = source.fetch(client)
+            result["removed"] = purge_expired_youtube(source.key)
         else:
             items = source.fetch(client)
         result["fetched"] = len(items)

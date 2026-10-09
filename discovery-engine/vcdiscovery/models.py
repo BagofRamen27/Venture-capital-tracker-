@@ -136,7 +136,7 @@ class NewsArticle(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source_key: Mapped[str] = mapped_column(String(80), index=True)
-    source_type: Mapped[str] = mapped_column(String(40))  # news | press_release | community
+    source_type: Mapped[str] = mapped_column(String(40))  # news | press_release | video | community
     publisher: Mapped[str | None] = mapped_column(String(120))
     url: Mapped[str] = mapped_column(String(1000), unique=True)
     title: Mapped[str] = mapped_column(Text)

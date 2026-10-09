@@ -59,7 +59,13 @@ class Settings(BaseSettings):
     reddit_min_score: int = 5
     reddit_posts_per_subreddit: int = 50
 
-    @field_validator("sec_user_agent", "http_user_agent", mode="before")
+    # YouTube Data API v3 key (free, from Google Cloud). Left empty = YouTube search is skipped;
+    # the publisher channel feeds in config/sources.json need no key.
+    youtube_api_key: str = ""
+    youtube_lookback_hours: int = 48
+    youtube_results_per_query: int = 25
+
+    @field_validator("sec_user_agent", "http_user_agent", "youtube_api_key", mode="before")
     @classmethod
     def _clean_header(cls, value):
         """Pasted values often carry line breaks, tabs or accented letters, which are not allowed in an
