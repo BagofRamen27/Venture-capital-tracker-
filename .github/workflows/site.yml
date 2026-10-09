@@ -5,6 +5,8 @@
 #   1. Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
 #   2. Settings -> Secrets and variables -> Actions -> New repository secret
 #      Name: VCD_SEC_USER_AGENT   Value: Your Name your.email@example.com   (needed for SEC Form D data)
+#   3. Optional, for Reddit: secrets REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME
+#      (from a "script" app at https://www.reddit.com/prefs/apps). Reddit is skipped until they exist.
 #
 # The database is kept between runs on the `discovery-data` branch (one commit, replaced each day).
 name: Update data and publish site
@@ -68,6 +70,9 @@ jobs:
         working-directory: discovery-engine
         env:
           VCD_SEC_USER_AGENT: ${{ secrets.VCD_SEC_USER_AGENT }}
+          VCD_REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          VCD_REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          VCD_REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
         run: |
           python -m vcdiscovery.cli init-db
           python -m vcdiscovery.cli run
@@ -86,6 +91,11 @@ jobs:
 
       - name: Write website data files
         working-directory: discovery-engine
+        env:
+          VCD_SEC_USER_AGENT: ${{ secrets.VCD_SEC_USER_AGENT }}
+          VCD_REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          VCD_REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          VCD_REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
         run: |
           python -m vcdiscovery.cli init-db
           python -m vcdiscovery.cli export-site

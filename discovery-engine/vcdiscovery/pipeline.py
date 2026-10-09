@@ -33,6 +33,7 @@ from .models import (
 from .resolution import record_duplicate, resolve_or_create, similar_names, similar_startups
 from .sources import build_sources
 from .sources.base import FormDItem, NewsItem
+from .sources.reddit import RedditSource
 from .sources.sec_formd import INDUSTRY_LABELS, SecFormDSource, assess_candidate, review_flags
 from .text import canonical_url, company_domain, display_name, normalize_company_name, title_fingerprint
 
@@ -177,7 +178,9 @@ def ingest_news_item(session: Session, item: NewsItem, settings: Settings, match
 
     touched: set[int] = set()
     if item.source_type == "community":
-        _ingest_hn(session, item, article, settings, stats, touched, matcher)
+        if (item.community_metrics or {}).get("hn_id"):
+            _ingest_hn(session, item, article, settings, stats, touched, matcher)
+        _link_by_domain(session, item, article, touched)
     else:
         _ingest_funding_news(session, item, article, stats, touched, matcher)
     # Link remaining mentions of companies we already track.
@@ -232,6 +235,20 @@ def _ingest_funding_news(session, item: NewsItem, article: NewsArticle, stats, t
                 f"funding:{rnd.id}", source_key=item.source_key, detail=f"{value} ({ext.evidence_status})",
                 url=article.url, observed_at=item.published_at, article=article)
     _event_signals(session, startup, article, item.source_key)
+
+
+def _link_by_domain(session: Session, item: NewsItem, article: NewsArticle, touched: set[int]) -> None:
+    """A community post linking to a tracked company's own website is about that company."""
+    domain = company_domain(item.url)
+    if not domain:
+        return
+    for startup in session.scalars(select(Startup).where(Startup.domain == domain)):
+        if startup.id not in touched:
+            _mention(session, article, startup, "link_domain")
+            _add_signal(session, startup, "community_post", f"community:{startup.id}:{article.id}",
+                        source_key=item.source_key, detail=item.title, url=(item.community_metrics or {}).get("discussion_url"),
+                        observed_at=item.published_at, article=article)
+            touched.add(startup.id)
 
 
 def _ingest_hn(session, item: NewsItem, article: NewsArticle, settings: Settings, stats, touched, matcher) -> None:
@@ -424,6 +441,33 @@ def make_client(settings: Settings) -> PoliteClient:
                         min_interval=settings.http_min_interval_seconds, host_intervals=hosts)
 
 
+REDDIT_RECHECK_DAYS = 60
+
+
+def stored_reddit_ids(source_key: str) -> list[str]:
+    """Reddit posts stored in the last 60 days, re-checked each run so deleted posts are removed."""
+    since = utcnow() - timedelta(days=REDDIT_RECHECK_DAYS)
+    with session_scope() as session:
+        rows = session.scalars(select(NewsArticle).where(NewsArticle.source_key == source_key,
+                                                         NewsArticle.retrieved_at >= since))
+        return [a.community_metrics["reddit_id"] for a in rows if (a.community_metrics or {}).get("reddit_id")]
+
+
+def purge_reddit_posts(source_key: str, reddit_ids: list[str]) -> int:
+    """Delete stored posts (and signals quoting their titles) that were deleted or removed on Reddit."""
+    if not reddit_ids:
+        return 0
+    wanted = set(reddit_ids)
+    with session_scope() as session:
+        articles = [a for a in session.scalars(select(NewsArticle).where(NewsArticle.source_key == source_key))
+                    if (a.community_metrics or {}).get("reddit_id") in wanted]
+        for a in articles:
+            for sig in session.scalars(select(DiscoverySignal).where(DiscoverySignal.article_id == a.id)):
+                session.delete(sig)
+            session.delete(a)
+        return len(articles)
+
+
 def make_sec_client(settings: Settings) -> PoliteClient:
     return PoliteClient(user_agent=settings.sec_user_agent, timeout=settings.http_timeout_seconds,
                         min_interval=settings.sec_min_interval_seconds)
@@ -452,6 +496,10 @@ def run_source(source, client: PoliteClient, settings: Settings, trigger: str,
                     return bool(s.scalar(select(exists().where(SecFiling.accession_number == accession))))
             source.skip_accession = _known
             items = source.fetch(sec_client or client)  # SEC needs its own User-Agent with contact details
+        elif isinstance(source, RedditSource):
+            source.stored_ids = stored_reddit_ids(source.key)
+            items = source.fetch(client)
+            result["removed"] = purge_reddit_posts(source.key, source.removed_ids)
         else:
             items = source.fetch(client)
         result["fetched"] = len(items)

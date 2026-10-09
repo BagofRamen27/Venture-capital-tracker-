@@ -150,14 +150,21 @@
     },
     {
       "key": "reddit",
-      "name": "Reddit",
-      "type": "not_implemented",
+      "name": "Reddit (startup subreddits)",
+      "type": "reddit",
       "group": "community",
-      "enabled": false,
-      "url": "https://www.reddit.com/dev/api",
+      "enabled": true,
+      "url": "https://oauth.reddit.com",
       "publisher": "Reddit",
-      "disabled_reason": "Requires a registered Reddit app (OAuth) and acceptance of Reddit's Data API terms. Phase 4.",
-      "access_notes": "Authorized API only."
+      "subreddits": [
+        "startups",
+        "SaaS",
+        "venturecapital",
+        "SideProject",
+        "ycombinator",
+        "EntrepreneurRideAlong"
+      ],
+      "access_notes": "Official Reddit Data API, read-only application access. Stores titles, links, scores and comment counts only (no post text, no usernames); posts deleted on Reddit are removed on the next run. Links posts to companies already tracked; never creates new companies."
     },
     {
       "key": "yc_directory",
