@@ -7,6 +7,8 @@
 #      Name: VCD_SEC_USER_AGENT   Value: Your Name your.email@example.com   (needed for SEC Form D data)
 #   3. Optional, for Reddit: secrets REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME
 #      (from a "script" app at https://www.reddit.com/prefs/apps). Reddit is skipped until they exist.
+#   4. Optional, for YouTube search: secret YOUTUBE_API_KEY (free key from Google Cloud with the
+#      "YouTube Data API v3" enabled). The YouTube channel feeds need no key.
 #
 # The database is kept between runs on the `discovery-data` branch (one commit, replaced each day).
 name: Update data and publish site
@@ -65,7 +67,7 @@ jobs:
           (cd discovery-engine && python -m pytest)
           (cd vc-investment-tracker-web && node --test && npm run check)
 
-      - name: Discover startups (news, Hacker News, SEC Form D)
+      - name: Discover startups (news, Hacker News, YouTube, SEC Form D)
         if: env.COLLECT == 'true'
         working-directory: discovery-engine
         env:
@@ -73,6 +75,7 @@ jobs:
           VCD_REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
           VCD_REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           VCD_REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          VCD_YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           python -m vcdiscovery.cli init-db
           python -m vcdiscovery.cli run

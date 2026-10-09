@@ -115,6 +115,8 @@ Configured in `config/sources.json`. Set `"enabled": true/false` to switch a sou
 | PR Newswire (venture capital list) | Public RSS of press releases (labelled *company_announced*) | Enabled |
 | Sifted, Business Wire | Feed URL must be confirmed/chosen by you | Disabled |
 | Reddit (official Data API, read-only) | Free for non-commercial use; needs a registered "script" app and Reddit's approval | Enabled once `VCD_REDDIT_*` credentials are set |
+| YouTube channel feeds (Y Combinator, TechCrunch, a16z, Bloomberg Technology) | Public RSS feeds, no key; title, link and short description only | Enabled |
+| YouTube search (official YouTube Data API v3) | Free API key; 4 searches a day (400 of 10,000 free quota units) | Enabled once `VCD_YOUTUBE_API_KEY` is set |
 | Product Hunt, YC directory | Need API approval/terms review, or have no public API | Not implemented (Phase 4) |
 
 **Rules the code follows:** it never downloads full articles, never bypasses paywalls, logins,
@@ -170,6 +172,24 @@ deleted from the database if they were deleted or removed on Reddit.
 at https://www.reddit.com/prefs/apps, then set `VCD_REDDIT_CLIENT_ID`, `VCD_REDDIT_CLIENT_SECRET` and
 `VCD_REDDIT_USERNAME` in `.env` (locally) or the `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` and `REDDIT_USERNAME`
 repository secrets (GitHub). Until then the Data status page shows Reddit as "needs configuration".
+
+### YouTube
+Two parts, both free:
+
+* **Channel feeds** (no key): each chosen channel's public RSS feed (list in `config/sources.json`). Video
+  titles are read like news headlines: "Acme raises $10M Series A" from TechCrunch's channel can create a company
+  and a `reported` funding round, cited as a `video` source. The publisher is the channel owner, so a TechCrunch
+  video and a TechCrunch article never count as two independent sources.
+* **Search** (free API key): the YouTube Data API searches for the phrases in `config/sources.json` (videos from
+  the last 48 hours). Results can come from any uploader, so, like Reddit, they only link to companies you already
+  track and never create new ones.
+
+Videos are never downloaded and captions are never read; only the title, link, channel and a short description
+are stored. Search results are deleted after 30 days, as the YouTube Developer Policies require.
+
+**Setup for search:** in [Google Cloud Console](https://console.cloud.google.com/) create a project, enable
+**YouTube Data API v3**, create an **API key** (restrict it to that API), then set `VCD_YOUTUBE_API_KEY` in `.env`
+or the `YOUTUBE_API_KEY` repository secret. No billing account is needed.
 
 ### Data-confidence score (0–100)
 Identity (website, SEC CIK) + best source type + independent publishers + freshness + key fields filled −

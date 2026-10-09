@@ -834,7 +834,7 @@ function viewDiscover() {
   const rows=VS.filterDiscovery(all,f);
   const uniq=k=>[...new Set(all.map(c=>c[k]).filter(Boolean))].sort();
   const sel=all.find(c=>c.id===DISC.selected);
-  return `<div class="pagehead"><div><span class="eyebrow">Automated discovery</span><h1>Discovered startups</h1><p>Companies found in startup news, press releases, Hacker News launches and SEC Form D filings. Updated daily.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
+  return `<div class="pagehead"><div><span class="eyebrow">Automated discovery</span><h1>Discovered startups</h1><p>Companies found in startup news, press releases, Hacker News launches, YouTube videos and SEC Form D filings. Updated daily.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
   ${DISC.loading?'<div class="panel" role="status">Loading discovered companies…</div>':''}
   ${DISC.error?`<div class="panel" role="alert">${esc(DISC.error)} <a href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Open the daily update</a></div>`:''}
   ${DISC.data?`<p class="note">Updated ${esc(new Date(DISC.data.generated_at+'Z').toLocaleString())}. ${esc(DISC.data.disclaimer)}</p>
@@ -907,10 +907,11 @@ function viewAbout() {
   </section>
   <section class="panel prose">
     <h2>What VentureScout does</h2>
-    <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
+    <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches, YouTube videos and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
     <p>Each company gets a data-confidence rating and a preliminary research score that shows the evidence behind it and says when information is missing. You can save companies to your own list, score them, and track them through a deal pipeline, all in your browser.</p>
     <h2>Data and sources</h2>
     <p>Data comes only from free, public and legally usable sources, and every fact links back to where it came from. See the <button type="button" class="link" data-nav="status">Data status</button> page for the full list and when each source last updated.</p>
+    <p>Video results use YouTube API Services. See the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p>
     <p class="note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
     <h2>Open source</h2>
     <p>VentureScout is open source under the MIT license. The code is public: <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">github.com/BagofRamen27/Venture-capital-tracker-</a>. Suggestions and contributions are welcome.</p>

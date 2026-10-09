@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?channel_id=UCCjyq_K1Xwfg8Lndy7lKMpA"/>
+ <id>yt:channel:CCjyq_K1Xwfg8Lndy7lKMpA</id>
+ <yt:channelId>CCjyq_K1Xwfg8Lndy7lKMpA</yt:channelId>
+ <title>TechCrunch</title>
+ <link rel="alternate" href="https://www.youtube.com/channel/UCCjyq_K1Xwfg8Lndy7lKMpA"/>
+ <author><name>TechCrunch</name><uri>https://www.youtube.com/channel/UCCjyq_K1Xwfg8Lndy7lKMpA</uri></author>
+ <published>2007-04-12T22:36:33+00:00</published>
+ <entry>
+  <id>yt:video:vid000001</id>
+  <yt:videoId>vid000001</yt:videoId>
+  <yt:channelId>UCCjyq_K1Xwfg8Lndy7lKMpA</yt:channelId>
+  <title>Orbital Grid raises $18M Series A to build battery-swapping stations</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vid000001"/>
+  <author><name>TechCrunch</name><uri>https://www.youtube.com/channel/UCCjyq_K1Xwfg8Lndy7lKMpA</uri></author>
+  <published>2026-10-07T15:00:12+00:00</published>
+  <updated>2026-10-07T15:05:40+00:00</updated>
+  <media:group>
+   <media:title>Orbital Grid raises $18M Series A to build battery-swapping stations</media:title>
+   <media:content url="https://www.youtube.com/v/vid000001?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/vid000001/hqdefault.jpg" width="480" height="360"/>
+   <media:description>The founders of Orbital Grid explain the round, led by Example Ventures.</media:description>
+   <media:community><media:starRating count="120" average="5.00" min="1" max="5"/><media:statistics views="5021"/></media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:vid000002</id>
+  <yt:videoId>vid000002</yt:videoId>
+  <yt:channelId>UCCjyq_K1Xwfg8Lndy7lKMpA</yt:channelId>
+  <title>What founders get wrong about pricing</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vid000002"/>
+  <author><name>TechCrunch</name><uri>https://www.youtube.com/channel/UCCjyq_K1Xwfg8Lndy7lKMpA</uri></author>
+  <published>2026-10-06T12:00:00+00:00</published>
+  <updated>2026-10-06T12:00:00+00:00</updated>
+  <media:group>
+   <media:title>What founders get wrong about pricing</media:title>
+   <media:description>A panel on pricing.</media:description>
+  </media:group>
+ </entry>
+</feed>

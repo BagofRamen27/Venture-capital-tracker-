@@ -6,8 +6,9 @@ from .hackernews import HackerNewsSource
 from .reddit import RedditSource
 from .rss import RSSSource
 from .sec_formd import SecFormDSource
+from .youtube import YouTubeSearchSource
 
-GROUPS = ("news", "funding", "community", "regulatory")
+GROUPS = ("news", "funding", "community", "video", "regulatory")
 
 
 def load_source_configs(settings: Settings) -> list[dict]:
@@ -21,6 +22,8 @@ def configuration_problem(cfg: dict, settings: Settings) -> str | None:
     if cfg["type"] == "reddit" and not (settings.reddit_client_id and settings.reddit_client_secret and settings.reddit_username):
         return ("Waiting for Reddit API credentials: add the REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET and "
                 "REDDIT_USERNAME repository secrets (see README)")
+    if cfg["type"] == "youtube_search" and not settings.youtube_api_key:
+        return "Waiting for a YouTube Data API key: add the YOUTUBE_API_KEY repository secret (see README)"
     return None
 
 
@@ -55,6 +58,11 @@ def build_sources(settings: Settings, keys: list[str] | None = None, groups: lis
                                         client_id=settings.reddit_client_id, client_secret=settings.reddit_client_secret,
                                         username=settings.reddit_username, per_subreddit=settings.reddit_posts_per_subreddit,
                                         min_score=settings.reddit_min_score))
+        elif kind == "youtube_search":
+            sources.append(YouTubeSearchSource(key=key, name=cfg["name"], queries=cfg["queries"],
+                                               api_key=settings.youtube_api_key,
+                                               lookback_hours=settings.youtube_lookback_hours,
+                                               results_per_query=settings.youtube_results_per_query))
         elif kind == "sec_form_d":
             sources.append(SecFormDSource(key=key, name=cfg["name"], lookback_days=settings.sec_lookback_days,
                                           max_filings=settings.sec_max_filings_per_run))

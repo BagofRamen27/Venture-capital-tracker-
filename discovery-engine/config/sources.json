@@ -167,6 +167,66 @@
       "access_notes": "Official Reddit Data API, read-only application access. Stores titles, links, scores and comment counts only (no post text, no usernames); posts deleted on Reddit are removed on the next run. Links posts to companies already tracked; never creates new companies."
     },
     {
+      "key": "youtube_ycombinator",
+      "name": "YouTube: Y Combinator",
+      "type": "rss",
+      "group": "video",
+      "source_type": "video",
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCcefcZRL2oaA_uBNeo5UOWg",
+      "publisher": "Y Combinator",
+      "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
+    },
+    {
+      "key": "youtube_techcrunch",
+      "name": "YouTube: TechCrunch",
+      "type": "rss",
+      "group": "video",
+      "source_type": "video",
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCCjyq_K1Xwfg8Lndy7lKMpA",
+      "publisher": "TechCrunch",
+      "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
+    },
+    {
+      "key": "youtube_a16z",
+      "name": "YouTube: a16z",
+      "type": "rss",
+      "group": "video",
+      "source_type": "video",
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC9cn0TuPq4dnbTY-CBsm8XA",
+      "publisher": "Andreessen Horowitz (a16z)",
+      "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
+    },
+    {
+      "key": "youtube_bloomberg_technology",
+      "name": "YouTube: Bloomberg Technology",
+      "type": "rss",
+      "group": "video",
+      "source_type": "video",
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCrM7B7SL_g1edFOnmj-SDKg",
+      "publisher": "Bloomberg",
+      "access_notes": "Public YouTube channel feed (no key). Video titles, links and short descriptions only; videos are never downloaded. Funding news in titles is labelled like a news report."
+    },
+    {
+      "key": "youtube_search",
+      "name": "YouTube search (startup funding videos)",
+      "type": "youtube_search",
+      "group": "video",
+      "enabled": true,
+      "url": "https://www.googleapis.com/youtube/v3/search",
+      "publisher": "YouTube",
+      "queries": [
+        "startup raises seed round",
+        "startup Series A funding",
+        "Launch YC startup",
+        "startup demo day pitch"
+      ],
+      "access_notes": "Official YouTube Data API v3 with a free key (4 searches a day, 400 of 10,000 free quota units). Stores titles, links, channel names and short descriptions only, and deletes them after 30 days (YouTube API policy). Links videos to companies already tracked; never creates new companies. Uses YouTube API Services: https://www.youtube.com/t/terms"
+    },
+    {
       "key": "yc_directory",
       "name": "Y Combinator company directory",
       "type": "not_implemented",

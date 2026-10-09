@@ -22,7 +22,7 @@ class RSSSource:
         self.url = url
         self.publisher = publisher
         self.group = group  # news | funding
-        self.source_type = source_type  # news | press_release
+        self.source_type = source_type  # news | press_release | video
         self.max_items = max_items
 
     def fetch(self, client: PoliteClient) -> list[NewsItem]:
