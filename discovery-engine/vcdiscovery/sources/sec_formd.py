@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta
 from typing import Callable
 
-from ..http import PoliteClient
+from ..http import PoliteClient, SourceUnavailable
 from ..text import parse_amount
 from .base import FormDItem, RelatedPerson
 
@@ -223,14 +223,27 @@ class SecFormDSource:
 
     def fetch(self, client: PoliteClient) -> list[FormDItem]:
         rows: list[dict] = []
+        unpublished: str | None = None
+        loaded = False
         for offset in range(1, self.lookback_days + 1):
             day = self.today() - timedelta(days=offset)
             if day.weekday() >= 5:
                 continue  # EDGAR does not publish daily indexes on weekends
-            resp = client.get(daily_index_url(day), ok_statuses=(404,))
+            url = daily_index_url(day)
+            resp = client.get(url, ok_statuses=(403, 404))
             if resp.status_code == 404:
-                continue  # holiday or index not published yet
+                continue  # holiday
+            if resp.status_code == 403:
+                # EDGAR also answers 403 for an index that does not exist (yet): yesterday's is published
+                # around 10 pm US Eastern. If another day's index loads, access itself is fine.
+                unpublished = unpublished or url
+                continue
+            loaded = True
             rows.extend(parse_daily_index(resp.text))
+        if unpublished and not loaded:
+            # No index loaded at all, so this is not just a missing day: access is refused.
+            raise SourceUnavailable(f"{unpublished} refused access (HTTP 403). Check VCD_SEC_USER_AGENT and "
+                                    "SEC's access rules (https://www.sec.gov/os/accessing-edgar-data).")
         items: list[FormDItem] = []
         for row in rows:
             if len(items) >= self.max_filings:
