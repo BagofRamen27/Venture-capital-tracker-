@@ -115,8 +115,8 @@ Configured in `config/sources.json`. Set `"enabled": true/false` to switch a sou
 | PR Newswire (venture capital list) | Public RSS of press releases (labelled *company_announced*) | Enabled |
 | Sifted, Business Wire | Feed URL must be confirmed/chosen by you | Disabled |
 | Reddit (official Data API, read-only) | Free for non-commercial use; needs a registered "script" app and Reddit's approval | Enabled once `VCD_REDDIT_*` credentials are set |
-| YouTube channel feeds (Y Combinator, TechCrunch, a16z, Bloomberg Technology) | Public RSS feeds, no key; title, link and short description only | Enabled |
-| YouTube search (official YouTube Data API v3) | Free API key; 4 searches a day (400 of 10,000 free quota units) | Enabled once `VCD_YOUTUBE_API_KEY` is set |
+| YouTube channel feeds (Y Combinator, TechCrunch, a16z, Bloomberg Technology, This Week in Startups, CNBC Television) | Public RSS feeds, no key; title, link and short description only | Enabled |
+| YouTube search (official YouTube Data API v3) | Free Google Cloud API key; 4 searches a day (400 of 10,000 free quota units) | Disabled (optional) |
 | Product Hunt, YC directory | Need API approval/terms review, or have no public API | Not implemented (Phase 4) |
 
 **Rules the code follows:** it never downloads full articles, never bypasses paywalls, logins,
@@ -187,7 +187,8 @@ Two parts, both free:
 Videos are never downloaded and captions are never read; only the title, link, channel and a short description
 are stored. Search results are deleted after 30 days, as the YouTube Developer Policies require.
 
-**Setup for search:** in [Google Cloud Console](https://console.cloud.google.com/) create a project, enable
+**Setup for search (optional, off by default):** set `"enabled": true` for `youtube_search` in
+`config/sources.json`, then in [Google Cloud Console](https://console.cloud.google.com/) create a project, enable
 **YouTube Data API v3**, create an **API key** (restrict it to that API), then set `VCD_YOUTUBE_API_KEY` in `.env`
 or the `YOUTUBE_API_KEY` repository secret. No billing account is needed.
 
