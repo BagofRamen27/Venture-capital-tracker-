@@ -72,6 +72,7 @@ one-time setup. Locally, preview the result with `npm run dev` in `vc-investment
 |---|---|
 | `init-db` | Create database tables (safe to repeat) |
 | `run [--source KEY] [--group news\|funding\|community\|regulatory]` | Run discovery now |
+| `enrich [--limit N]` | Fill missing company facts from Wikidata |
 | `check-sources [--include-disabled]` | Test every source's URL; nothing is saved |
 | `serve [--scheduler] [--port 8000]` | Start the API |
 | `schedule` | Run scheduled jobs in this terminal (Ctrl+C stops) |
@@ -108,6 +109,7 @@ Configured in `config/sources.json`. Set `"enabled": true/false` to switch a sou
 | Source | Access | Status |
 |---|---|---|
 | Hacker News (Algolia HN API) | Free, no key | Enabled |
+| Wikidata (official MediaWiki API) | Free, public domain (CC0); identified User-Agent, `maxlag`, one request at a time | Enabled (enrichment) |
 | SEC EDGAR Form D (daily index + `primary_doc.xml`) | Free; requires User-Agent with your email; ≤10 req/s (we use ≤4) | Enabled once `VCD_SEC_USER_AGENT` is set |
 | TechCrunch (Venture, Startups), Crunchbase News, FinSMEs, EU-Startups, VentureBeat | Public RSS feeds; headline, link and ≤500-char summary only | Enabled |
 | PR Newswire (venture capital list) | Public RSS of press releases (labelled *company_announced*) | Enabled |
@@ -135,6 +137,7 @@ source that fails. Review each publisher's terms if you plan anything beyond per
 | `reported` | One news outlet | Yes |
 | `target` | "aims to raise", "seeks"… | No |
 | `rumor` | "reportedly", "in talks", "sources say"… Repetition never upgrades a rumour | No |
+| `community_sourced` | Company facts from Wikidata (website, founded, founders, HQ, industry), never funding | n/a |
 
 Different amounts for the same round within 60 days → both rounds flagged `conflict` and the company flagged `conflicting_funding`.
 Different currencies are never converted or summed.
@@ -146,6 +149,13 @@ Different currencies are never converted or summed.
 review item in `GET /api/duplicates`. Fuzzy matches are never merged automatically.
 Articles: same cleaned URL = same article. Same headline within 3 days = syndicated copy, which is stored
 but does not count as corroboration.
+
+### Wikidata enrichment
+`enrich` looks up companies (newest first, 60 per run) on Wikidata and fills **only empty** fields: website,
+founding year, founders, headquarters, country, industry and description. A Wikidata item is accepted only if
+its official website matches the company's known website, or, when no website is known, if it is the only
+company-like item with exactly that name. Each filled field is cited as `community_sourced` with a link to the
+item. Matched companies are not looked up again; unmatched ones are re-checked after 30 days.
 
 ### Data-confidence score (0–100)
 Identity (website, SEC CIK) + best source type + independent publishers + freshness + key fields filled −

@@ -71,6 +71,12 @@ jobs:
         run: |
           python -m vcdiscovery.cli init-db
           python -m vcdiscovery.cli run
+
+      - name: Fill missing company facts from Wikidata
+        if: env.COLLECT == 'true'
+        working-directory: discovery-engine
+        run: |
+          python -m vcdiscovery.cli enrich
           python -m vcdiscovery.cli refresh-scores
 
       - name: Refresh StartupDB funding records
