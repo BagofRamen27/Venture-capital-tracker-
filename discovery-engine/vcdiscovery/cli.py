@@ -169,6 +169,16 @@ def cmd_export_hall(args):
     print(f"Hall of contributors: {len(entries)} approved portrait(s) written to {args.directory}")
 
 
+def cmd_geocode(args):
+    from .geocode import write_places
+    from .pipeline import make_client
+
+    settings = _setup()
+    with session_scope() as session:
+        data = write_places(session, make_client(settings), args.market, args.out, args.max_new)
+    print(f"Map: {len(data['discovery'])} discovered and {len(data['market'])} StartupDB companies placed; wrote {args.out}")
+
+
 def cmd_print_schema(_args):
     from sqlalchemy.dialects import postgresql, sqlite
     from sqlalchemy.schema import CreateIndex, CreateTable
@@ -236,6 +246,11 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("export-hall", help="Write approved 'Join the hall' GitHub issues for the Hall of contributors")
     p.add_argument("directory", nargs="?", default=str(BASE_DIR.parent / "vc-investment-tracker-web" / "public" / "contributors"))
     p.set_defaults(func=cmd_export_hall)
+    p = sub.add_parser("geocode", help="Look up company cities on OpenStreetMap and write the map's places.json")
+    p.add_argument("--market", default=str(BASE_DIR.parent / "vc-investment-tracker-web" / "public" / "data" / "market.json"), help="StartupDB data file (optional)")
+    p.add_argument("--out", default=str(BASE_DIR.parent / "vc-investment-tracker-web" / "public" / "data" / "places.json"))
+    p.add_argument("--max-new", type=int, default=60, help="new lookups per run (Nominatim: 1 per second)")
+    p.set_defaults(func=cmd_geocode)
     p = sub.add_parser("print-schema", help="Print the SQL schema")
     p.add_argument("--postgres", action="store_true")
     p.set_defaults(func=cmd_print_schema)

@@ -6,6 +6,18 @@ CREATE TABLE app_settings (
 );
 
 
+CREATE TABLE geocode_cache (
+	"query" VARCHAR(300) NOT NULL, 
+	status VARCHAR(20) NOT NULL, 
+	lat FLOAT, 
+	lon FLOAT, 
+	place VARCHAR(200), 
+	country VARCHAR(120), 
+	looked_up_at DATETIME NOT NULL, 
+	PRIMARY KEY ("query")
+);
+
+
 CREATE TABLE investors (
 	id INTEGER NOT NULL, 
 	name VARCHAR(255) NOT NULL, 
@@ -40,8 +52,8 @@ CREATE TABLE job_runs (
 	PRIMARY KEY (id)
 );
 
-CREATE INDEX ix_job_runs_job_name ON job_runs (job_name);
 CREATE INDEX ix_job_runs_source_key ON job_runs (source_key);
+CREATE INDEX ix_job_runs_job_name ON job_runs (job_name);
 
 CREATE TABLE news_articles (
 	id INTEGER NOT NULL, 
@@ -66,8 +78,8 @@ CREATE TABLE news_articles (
 );
 
 CREATE INDEX ix_news_articles_title_fingerprint ON news_articles (title_fingerprint);
-CREATE INDEX ix_news_articles_source_key ON news_articles (source_key);
 CREATE INDEX ix_news_articles_published_at ON news_articles (published_at);
+CREATE INDEX ix_news_articles_source_key ON news_articles (source_key);
 
 CREATE TABLE startups (
 	id INTEGER NOT NULL, 
@@ -121,11 +133,11 @@ CREATE TABLE startups (
 	UNIQUE (external_id)
 );
 
-CREATE INDEX ix_startups_domain ON startups (domain);
-CREATE INDEX ix_startups_sec_cik ON startups (sec_cik);
-CREATE INDEX ix_startups_funding_stage ON startups (funding_stage);
-CREATE INDEX ix_startups_review_status ON startups (review_status);
 CREATE INDEX ix_startups_industry ON startups (industry);
+CREATE INDEX ix_startups_sec_cik ON startups (sec_cik);
+CREATE INDEX ix_startups_domain ON startups (domain);
+CREATE INDEX ix_startups_review_status ON startups (review_status);
+CREATE INDEX ix_startups_funding_stage ON startups (funding_stage);
 CREATE INDEX ix_startups_first_discovered_at ON startups (first_discovered_at);
 CREATE INDEX ix_startups_normalized_name ON startups (normalized_name);
 
@@ -176,8 +188,8 @@ CREATE TABLE investment_scores (
 	FOREIGN KEY(startup_id) REFERENCES startups (id) ON DELETE CASCADE
 );
 
-CREATE INDEX ix_investment_scores_is_current ON investment_scores (is_current);
 CREATE INDEX ix_investment_scores_startup_id ON investment_scores (startup_id);
+CREATE INDEX ix_investment_scores_is_current ON investment_scores (is_current);
 
 CREATE TABLE review_events (
 	id INTEGER NOT NULL, 
@@ -251,10 +263,10 @@ CREATE TABLE sec_filings (
 	FOREIGN KEY(suggested_startup_id) REFERENCES startups (id) ON DELETE SET NULL
 );
 
-CREATE INDEX ix_sec_filings_startup_id ON sec_filings (startup_id);
-CREATE INDEX ix_sec_filings_normalized_name ON sec_filings (normalized_name);
 CREATE INDEX ix_sec_filings_filing_date ON sec_filings (filing_date);
 CREATE INDEX ix_sec_filings_cik ON sec_filings (cik);
+CREATE INDEX ix_sec_filings_startup_id ON sec_filings (startup_id);
+CREATE INDEX ix_sec_filings_normalized_name ON sec_filings (normalized_name);
 
 CREATE TABLE citations (
 	id INTEGER NOT NULL, 
@@ -300,8 +312,8 @@ CREATE TABLE discovery_signals (
 	UNIQUE (dedupe_key)
 );
 
-CREATE INDEX ix_discovery_signals_startup_id ON discovery_signals (startup_id);
 CREATE INDEX ix_discovery_signals_signal_type ON discovery_signals (signal_type);
+CREATE INDEX ix_discovery_signals_startup_id ON discovery_signals (startup_id);
 
 CREATE TABLE funding_rounds (
 	id INTEGER NOT NULL, 

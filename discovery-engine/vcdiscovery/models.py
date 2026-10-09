@@ -396,3 +396,16 @@ class AppSetting(Base):
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     value: Mapped[dict] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class GeocodeCache(Base):
+    """Coordinates of a place name, looked up once on OpenStreetMap Nominatim (for the website's map)."""
+    __tablename__ = "geocode_cache"
+
+    query: Mapped[str] = mapped_column(String(300), primary_key=True)  # normalised place text
+    status: Mapped[str] = mapped_column(String(20))  # found | not_found
+    lat: Mapped[float | None] = mapped_column(Float)
+    lon: Mapped[float | None] = mapped_column(Float)
+    place: Mapped[str | None] = mapped_column(String(200))  # e.g. "San Francisco, United States"
+    country: Mapped[str | None] = mapped_column(String(120))
+    looked_up_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

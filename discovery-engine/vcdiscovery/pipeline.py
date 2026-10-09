@@ -437,7 +437,8 @@ def link_filing(session: Session, filing: SecFiling, startup: Startup, actor: st
 # --------------------------------------------------------------------------- orchestration
 
 def make_client(settings: Settings) -> PoliteClient:
-    hosts = {"www.sec.gov": settings.sec_min_interval_seconds, "efts.sec.gov": settings.sec_min_interval_seconds}
+    hosts = {"www.sec.gov": settings.sec_min_interval_seconds, "efts.sec.gov": settings.sec_min_interval_seconds,
+             "nominatim.openstreetmap.org": 1.1}  # Nominatim allows at most one request per second
     return PoliteClient(user_agent=settings.http_user_agent, timeout=settings.http_timeout_seconds,
                         min_interval=settings.http_min_interval_seconds, host_intervals=hosts)
 
