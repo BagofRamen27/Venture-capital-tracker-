@@ -226,7 +226,7 @@ let route = { view: "dashboard", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
   if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
-  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status"].includes(h)) return { view: h };
+  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "about"].includes(h)) return { view: h };
   return { view: "dashboard" };
 }
 function go(view, id) {
@@ -244,7 +244,7 @@ function render() {
   tip.hidden = true;
   const active = route.view === "profile" ? "directory" : route.view;
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus }[route.view];
+  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, about: viewAbout }[route.view];
   $("#app").innerHTML = v(route.id);
   document.title = route.view === "profile" ? BYID[route.id].company_name + " · VentureScout" : "VentureScout";
   updateLogCount();
@@ -887,6 +887,36 @@ function discoveredProfile(c) {
   <h3>Sources and citations</h3><ul>${c.citations.map(x=>`<li>${esc(x.field)}: ${esc(x.value||'')} ${evBadge(x.evidence_status)}${x.is_estimate?' <span class="b b-plain">algorithmic estimate</span>':''} · ${link(x.source_url,x.publisher||'source')} <span class="small muted">retrieved ${esc(x.retrieved_at?.slice(0,10)||'')}</span></li>`).join('')||'<li>No citations recorded.</li>'}</ul>
   <details><summary>Data confidence breakdown (${esc(c.confidence.score)}/100)</summary><ul>${(c.confidence_breakdown?.components||[]).map(p=>`<li>${esc(p.component)}: ${p.points>0?'+':''}${esc(p.points)} — ${esc(p.explanation)}</li>`).join('')}</ul></details></section>`;
 }
+/* ---------- ABOUT ---------- */
+const FOUNDER_PHOTO = "images/alexander-liu.jpg"; // add the photo at public/images/alexander-liu.jpg
+function viewAbout() {
+  queueMicrotask(() => {
+    const img = new Image();
+    img.onload = () => { const slot = document.getElementById("founder-photo"); if (slot) { img.alt = "Alexander Liu"; img.className = "founder-photo"; slot.replaceWith(img); } };
+    img.src = FOUNDER_PHOTO;
+  });
+  return `<div class="pagehead"><div><span class="eyebrow">About</span><h1>About VentureScout</h1><p>A free, open-source startup research tool for students and professionals.</p></div></div>
+  <section class="panel founder">
+    <div class="founder-photo founder-initials" id="founder-photo" role="img" aria-label="Alexander Liu">AL</div>
+    <div>
+      <h2>Alexander Liu</h2>
+      <p class="eyebrow">Founder</p>
+      <p>I'm a Master's in Finance student at Babson College. I built VentureScout so that students and professionals can research startups with a free tracker, instead of paying for an expensive subscription.</p>
+      <p>VentureScout is <b>free and open source</b>: anyone can use it, read the code, or contribute on <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">GitHub</a>.</p>
+    </div>
+  </section>
+  <section class="panel prose">
+    <h2>What VentureScout does</h2>
+    <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
+    <p>Each company gets a data-confidence rating and a preliminary research score that shows the evidence behind it and says when information is missing. You can save companies to your own list, score them, and track them through a deal pipeline, all in your browser.</p>
+    <h2>Data and sources</h2>
+    <p>Data comes only from free, public and legally usable sources, and every fact links back to where it came from. See the <button type="button" class="link" data-nav="status">Data status</button> page for the full list and when each source last updated.</p>
+    <p class="note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
+    <h2>Open source</h2>
+    <p>VentureScout is open source under the MIT license. The code is public: <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">github.com/BagofRamen27/Venture-capital-tracker-</a>. Suggestions and contributions are welcome.</p>
+  </section>`;
+}
+
 function viewStatus() {
   queueMicrotask(loadDiscoveryData);
   const s=DISC.status;
