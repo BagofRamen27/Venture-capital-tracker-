@@ -91,3 +91,13 @@ def test_nominatim_failure_keeps_what_was_found(settings, tmp_path):
     assert len(out["discovery"]) == 1  # Paris could not be looked up; San Francisco still comes from the cache
     with db.session_scope() as s:
         assert s.scalar(select(GeocodeCache).where(GeocodeCache.query == "paris")) is None
+
+
+def test_street_addresses_are_reduced_to_the_city():
+    assert normalize_place("200 Berkeley Street, 18th floor, Boston, MA 02116") == "boston, ma"
+    assert normalize_place("1875 South Grant Street, Suite 550, San Mateo, CA 94402, USA") == "san mateo, ca, usa"
+    assert normalize_place("114 Yigal Alon Street, Tel Aviv, Israel") == "tel aviv, israel"
+    assert normalize_place("73 Spring St, Floor 3A, New York, NY 10012") == "new york, ny"
+    assert normalize_place("Toronto, ON M5V 2T6") == "toronto, on"
+    assert normalize_place("Stockholm") == "stockholm"  # plain places are unchanged
+    assert normalize_place("St. Louis, MO") == "st. louis, mo"

@@ -27,7 +27,12 @@ from .models import GeocodeCache, Startup, utcnow
 API = "https://nominatim.openstreetmap.org/search"
 ATTRIBUTION = "Locations © OpenStreetMap contributors (Nominatim, ODbL)"
 RETRY_AFTER = timedelta(days=90)
-SETTLEMENTS = {"city", "town", "village", "hamlet", "municipality", "suburb", "borough", "city_district", "quarter"}
+SETTLEMENTS = {"city", "town", "village", "hamlet", "municipality", "suburb", "borough", "city_district", "quarter",
+               "neighbourhood"}
+# Street-address parts ("200 Berkeley Street", "Suite 550", "18th floor") are dropped so only the city is looked up.
+# A street address always carries a number; "St. Louis" or "Fort Worth" do not.
+STREET = re.compile(r"\d|\b(suite|floor|unit|building)\b", re.I)
+POSTCODE = re.compile(r"\b(\d{5}(-\d{4})?|[a-z]\d[a-z] ?\d[a-z]\d)\b", re.I)  # US ZIP / Canadian postcode
 US_STATES = set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND "
                 "OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR".split())
 
@@ -35,7 +40,8 @@ US_STATES = set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD 
 def normalize_place(text: str | None) -> str | None:
     """Clean a free-text location ("San Francisco, CA, USA; Remote") into a lookup query, or None."""
     first = re.split(r"[;|/]", text or "")[0]
-    parts = [p.strip() for p in first.split(",") if p.strip() and p.strip().lower() not in ("remote", "global", "worldwide")]
+    parts = [" ".join(POSTCODE.sub("", p).split()) for p in first.split(",")]  # "MA 02116" -> "MA"
+    parts = [p for p in parts if p and not STREET.search(p) and p.lower() not in ("remote", "global", "worldwide")]
     query = ", ".join(parts)
     return query.lower()[:300] if parts else None
 
