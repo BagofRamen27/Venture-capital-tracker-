@@ -66,12 +66,22 @@ def _fmt(value):
     return value
 
 
+def _csv_safe_value(value):
+    """Prevent spreadsheet formula execution for untrusted text fields."""
+    if not isinstance(value, str):
+        return value
+    probe = value.lstrip("\t\r\n ")
+    if probe.startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
 def _write(rows: list[dict], fields: list[str]) -> str:
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for row in rows:
-        writer.writerow({k: _fmt(row.get(k)) for k in fields})
+        writer.writerow({k: _csv_safe_value(_fmt(row.get(k))) for k in fields})
     return buf.getvalue()
 
 
