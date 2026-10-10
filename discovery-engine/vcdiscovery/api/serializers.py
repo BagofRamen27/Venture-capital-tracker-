@@ -72,6 +72,9 @@ def round_dict(r: FundingRound) -> dict:
         "publishers": r.publishers or [], "investors": [
             {"name": ri.investor.name, "is_lead": ri.is_lead, "source_url": ri.source_url} for ri in r.investors],
         "conflict": r.conflict, "conflict_note": r.conflict_note, "notes": r.notes, "source_url": r.source_url,
+        "announced_date_basis": (r.extra or {}).get("announced_date_basis"),
+        "funding_resolution": (r.extra or {}).get("funding_resolution"),
+        "funding_observations": (r.extra or {}).get("funding_observations", []),
         "sec_filing_id": r.sec_filing_id,
     }
 
