@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from tests.conftest import fixture_text, make_client
 from tests.test_sources import sec_routes
 from vcdiscovery import db
+from vcdiscovery.funding import record_round
 from vcdiscovery.models import (
     ArticleMention,
     DiscoverySignal,
@@ -98,6 +99,20 @@ def test_corroboration_confirms_and_conflict_is_flagged(settings):
         acme = s.scalar(select(Startup))
         assert "conflicting_funding" in acme.flags
         assert any(c["component"] == "conflicts" for c in acme.confidence_breakdown["components"])
+
+
+def test_missing_funding_date_is_not_imputed_or_merged(settings):
+    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/dated", publisher="Outlet A")])
+    with db.session_scope() as s:
+        startup = s.scalar(select(Startup).where(Startup.name == "Acme Robotics"))
+        rnd, outcome = record_round(
+            s, startup, round_type="Series A", amount=12e6, currency="USD",
+            amount_text="$12M", announced=None, evidence_status="reported",
+            publisher="Outlet B", source_url="https://b.example/undated",
+        )
+        assert outcome == "new"
+        assert rnd.announced_date is None
+        assert s.scalar(select(func.count(FundingRound.id))) == 2
 
 
 def test_rumours_are_never_confirmed_by_repetition(settings):
