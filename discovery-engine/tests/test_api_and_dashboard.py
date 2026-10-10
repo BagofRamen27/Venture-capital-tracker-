@@ -61,7 +61,9 @@ def test_csv_round_trip_updates_instead_of_duplicating(settings):
 
 def test_write_endpoints_require_token_when_configured(settings):
     settings.api_token = "secret"
-    c = client_for(settings)
+    # client_for intentionally supplies a valid key, so use a bare client to
+    # verify that the same endpoint rejects requests without the header.
+    c = TestClient(create_app(settings))
     assert c.post("/api/discovery/run", json={}).status_code == 401
     assert c.get("/api/startups").status_code == 200  # reads stay open
 
