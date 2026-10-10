@@ -127,14 +127,19 @@ def test_missing_publication_timestamp_stays_unknown(settings):
 
 def test_missing_amount_is_not_used_to_merge_rounds(settings):
     ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/amount", publisher="Outlet A")])
-    ingest(settings, [news("Acme Robotics raises Series A", "https://b.example/no-amount", publisher="Outlet B")])
     with db.session_scope() as s:
+        startup = s.scalar(select(Startup).where(Startup.name == "Acme Robotics"))
+        rnd, outcome = record_round(
+            s, startup, round_type="Series A", amount=None, currency=None, amount_text=None,
+            announced=date(2026, 10, 2), evidence_status="reported",
+            publisher="Outlet B", source_url="https://b.example/no-amount",
+        )
         rounds = s.scalars(select(FundingRound).order_by(FundingRound.id)).all()
-        startup = s.scalar(select(Startup))
+        assert outcome == "new"
         assert len(rounds) == 2
         assert "possible_duplicate" in (startup.flags or [])
-        assert rounds[1].extra["funding_resolution"]["state"] == "needs_review"
-        assert rounds[1].extra["funding_observations"][0]["amount"] is None
+        assert rnd.extra["funding_resolution"]["state"] == "needs_review"
+        assert rnd.extra["funding_observations"][0]["amount"] is None
 
 
 def test_same_publisher_with_case_variation_does_not_corroborate(settings):
