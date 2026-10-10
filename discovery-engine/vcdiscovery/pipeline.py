@@ -216,12 +216,17 @@ def _ingest_funding_news(session, item: NewsItem, article: NewsArticle, stats, t
         startup.industry = ext.industry_hint
     touched.add(startup.id)
     _mention(session, article, startup, "extracted_subject")
-    announced = (item.published_at or utcnow()).date()
+    # Publication time is not the same as the funding event date. Use it only as an
+    # explicitly labelled proxy when present; never substitute retrieval/current time.
+    announced = item.published_at.date() if item.published_at else None
+    announced_date_basis = "publication_date_proxy" if item.published_at else "unknown"
     rnd, outcome = record_round(
         session, startup, round_type=ext.round_type, amount=ext.amount, currency=ext.currency,
         amount_text=ext.amount_text, announced=announced, evidence_status=ext.evidence_status,
         publisher=item.publisher, source_url=article.url, article_id=article.id,
         investors=ext.investors, leads=ext.lead_investors,
+        announced_date_basis=announced_date_basis,
+        source_published_at=item.published_at.isoformat() if item.published_at else None,
     )
     value = " ".join(p for p in (ext.round_type, ext.amount_text) if p) or "Funding mentioned"
     add_citation(session, startup, "funding_round", value, ext.evidence_status, key=f"a{article.id}",

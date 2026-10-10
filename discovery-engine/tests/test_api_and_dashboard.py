@@ -16,7 +16,7 @@ TRACKER_JSON = REPO_ROOT / "vc-investment-tracker-web" / "examples" / "original-
 
 
 def client_for(settings):
-    return TestClient(create_app(settings))
+    return TestClient(create_app(settings), headers={"X-API-Key": settings.api_token} if settings.api_token else {})
 
 
 def test_core_endpoints(settings):
@@ -61,7 +61,9 @@ def test_csv_round_trip_updates_instead_of_duplicating(settings):
 
 def test_write_endpoints_require_token_when_configured(settings):
     settings.api_token = "secret"
-    c = client_for(settings)
+    # client_for intentionally supplies a valid key, so use a bare client to
+    # verify that the same endpoint rejects requests without the header.
+    c = TestClient(create_app(settings))
     assert c.post("/api/discovery/run", json={}).status_code == 401
     assert c.get("/api/startups").status_code == 200  # reads stay open
 
@@ -71,6 +73,14 @@ def test_run_discovery_endpoint_starts_background_job(settings, monkeypatch):
     monkeypatch.setattr("vcdiscovery.api.app.run_discovery", lambda *a, **k: calls.append(k))
     r = client_for(settings).post("/api/discovery/run", json={"groups": ["funding"]})
     assert r.status_code == 202 and calls[0]["groups"] == ["funding"]
+
+
+def test_csv_export_neutralizes_formula_strings(settings):
+    from vcdiscovery.csv_io import _write
+
+    output = _write([{"name": "=HYPERLINK(\"https://bad.example\")", "amount": -120}], ["name", "amount"])
+    assert "'=HYPERLINK" in output
+    assert ",-120" in output  # legitimate numeric values remain numeric
 
 
 def test_tracker_import_is_idempotent(settings):

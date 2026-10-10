@@ -124,7 +124,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_methods=["*"], allow_headers=["*"])
 
     def require_token(x_api_key: str | None = Header(default=None)) -> None:
-        if settings.api_token and x_api_key != settings.api_token:
+        if not settings.api_token:
+            raise HTTPException(503, "Write API disabled: configure VCD_API_TOKEN")
+        if x_api_key != settings.api_token:
             raise HTTPException(401, "Missing or wrong X-API-Key header")
 
     write = [Depends(require_token)]
@@ -450,7 +452,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/api/import/startups", tags=["import/export"], dependencies=write)
     async def import_startups(file: UploadFile = File(...), session: Session = Depends(get_db)):
-        content = (await file.read()).decode("utf-8-sig")
+        max_upload_bytes = 2 * 1024 * 1024
+        content_bytes = await file.read(max_upload_bytes + 1)
+        if len(content_bytes) > max_upload_bytes:
+            raise HTTPException(413, "CSV upload exceeds 2 MiB limit")
+        try:
+            content = content_bytes.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise HTTPException(400, "CSV upload must be UTF-8 encoded") from exc
         result = import_startups_csv(session, content)
         session.commit()
         return result

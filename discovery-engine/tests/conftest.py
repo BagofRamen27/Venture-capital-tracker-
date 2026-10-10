@@ -23,7 +23,7 @@ def settings(tmp_path) -> Settings:
         hn_min_points=20,
         http_min_interval_seconds=0,
         sec_min_interval_seconds=0,
-        api_token="",
+        api_token="test-secret",
     )
     db.configure(s.resolved_database_url)
     db.init_db()

@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from tests.conftest import fixture_text, make_client
 from tests.test_sources import sec_routes
 from vcdiscovery import db
+from vcdiscovery.funding import record_round
 from vcdiscovery.models import (
     ArticleMention,
     DiscoverySignal,
@@ -99,6 +100,95 @@ def test_corroboration_confirms_and_conflict_is_flagged(settings):
         assert "conflicting_funding" in acme.flags
         assert any(c["component"] == "conflicts" for c in acme.confidence_breakdown["components"])
 
+
+def test_missing_funding_date_is_not_imputed_or_merged(settings):
+    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/dated", publisher="Outlet A")])
+    with db.session_scope() as s:
+        startup = s.scalar(select(Startup).where(Startup.name == "Acme Robotics"))
+        rnd, outcome = record_round(
+            s, startup, round_type="Series A", amount=12e6, currency="USD",
+            amount_text="$12M", announced=None, evidence_status="reported",
+            publisher="Outlet B", source_url="https://b.example/undated",
+        )
+        assert outcome == "new"
+        assert rnd.announced_date is None
+        assert s.scalar(select(func.count(FundingRound.id))) == 2
+
+
+
+def test_missing_publication_timestamp_stays_unknown(settings):
+    ingest(settings, [news("Northstar Robotics raises $8M Seed", "https://a.example/undated", when=None)])
+    with db.session_scope() as s:
+        rnd = s.scalar(select(FundingRound))
+        assert rnd.announced_date is None
+        assert (rnd.extra or {})["announced_date_basis"] == "unknown"
+        assert (rnd.extra or {})["funding_observations"][0]["source_published_at"] is None
+
+
+def test_missing_amount_is_not_used_to_merge_rounds(settings):
+    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/amount", publisher="Outlet A")])
+    with db.session_scope() as s:
+        startup = s.scalar(select(Startup).where(Startup.name == "Acme Robotics"))
+        rnd, outcome = record_round(
+            s, startup, round_type="Series A", amount=None, currency=None, amount_text=None,
+            announced=date(2026, 10, 2), evidence_status="reported",
+            publisher="Outlet B", source_url="https://b.example/no-amount",
+        )
+        rounds = s.scalars(select(FundingRound).order_by(FundingRound.id)).all()
+        assert outcome == "new"
+        assert len(rounds) == 2
+        assert "possible_duplicate" in (startup.flags or [])
+        assert rnd.extra["funding_resolution"]["state"] == "needs_review"
+        assert rnd.extra["funding_observations"][0]["amount"] is None
+
+
+def test_same_publisher_with_case_variation_does_not_corroborate(settings):
+    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/same-publisher", publisher="Daily Wire")])
+    ingest(settings, [news("Acme Robotics lands $12 million Series A", "https://b.example/same-publisher", publisher=" daily wire ")])
+    with db.session_scope() as s:
+        rounds = s.scalars(select(FundingRound)).all()
+        assert len(rounds) == 1
+        assert rounds[0].evidence_status == "reported"
+        assert len(rounds[0].extra["funding_observations"]) == 2
+        assert rounds[0].extra["funding_observations"][1]["independent_source"] is False
+
+
+def test_repeated_round_observation_is_idempotent(settings):
+    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/idempotent", publisher="Outlet A")])
+    with db.session_scope() as s:
+        startup = s.scalar(select(Startup).where(Startup.name == "Acme Robotics"))
+        rnd, outcome = record_round(
+            s, startup, round_type="Series A", amount=12e6, currency="USD",
+            amount_text="$12M", announced=date(2026, 10, 2), evidence_status="reported",
+            publisher="Outlet A", source_url="https://a.example/idempotent",
+        )
+        assert outcome == "same_source"
+        assert s.scalar(select(func.count(FundingRound.id))) == 1
+        assert len(rnd.extra["funding_observations"]) == 1
+
+
+def test_ambiguous_funding_match_is_not_arbitrarily_merged(settings):
+    ingest(settings, [news("Acme Robotics raises $12M Series A", "https://a.example/first", publisher="Outlet A")])
+    with db.session_scope() as s:
+        startup = s.scalar(select(Startup).where(Startup.name == "Acme Robotics"))
+        first = startup.rounds[0]
+        second = FundingRound(
+            startup_id=startup.id, round_type="Series A", amount=12e6, currency="USD",
+            amount_text="$12M", announced_date=date(2026, 10, 3), evidence_status="reported",
+            source_url="https://b.example/second", publishers=["Outlet B"],
+        )
+        startup.rounds.append(second)
+        s.flush()
+        new_round, outcome = record_round(
+            s, startup, round_type="Series A", amount=12e6, currency="USD",
+            amount_text="$12M", announced=date(2026, 10, 4), evidence_status="reported",
+            publisher="Outlet C", source_url="https://c.example/third",
+        )
+        assert outcome == "new"
+        assert new_round.id not in {first.id, second.id}
+        assert new_round.extra["funding_resolution"]["state"] == "needs_review"
+        assert set(new_round.extra["funding_resolution"]["candidate_round_ids"]) == {first.id, second.id}
+        assert "possible_duplicate" in (startup.flags or [])
 
 def test_rumours_are_never_confirmed_by_repetition(settings):
     ingest(settings, [news("Orbital reportedly in talks to raise $50M", "https://a.example/r", publisher="Outlet A"),

@@ -822,14 +822,25 @@ const evBadge=st=>st?`<span class="b ${st==='confirmed'||st==='regulatory_filing
 const confB=c=>c?.label?`<span class="b b-${esc(c.label.toLowerCase())}" tabindex="0" data-tip="Data confidence ${esc(c.score)}/100: how well-supported this record is, not investment quality">${esc(c.label)} confidence</span>`:'';
 const scoreB=s=>s?.total!=null?`<span class="b b-plain" tabindex="0" data-tip="Preliminary research indicator (coverage ${Math.round((s.coverage||0)*100)}% of weights). Not an investment recommendation.">Score ${esc(s.total)} · ${esc(s.rating)}</span>`:'';
 const FLAG_TEXT={conflicting_funding:'Conflicting funding figures',possible_duplicate:'Possible duplicate',stale:'Stale information',name_collision:'Similar name to another company'};
-async function loadDiscoveryData() {
-  if(DISC.loading||DISC.loaded)return;
+async function loadDiscoveryData({retry=false}={}) {
+  if(DISC.loading)return;
+  if(retry){DISC.loaded=false;DISC.error='';DISC.statusError='';}
+  if(DISC.loaded)return;
   DISC.loading=true;
   const get=async f=>{const r=await fetch('data/'+f,{cache:'no-cache'});if(r.status===404)throw new Error('Not available yet: the first daily update has not run.');if(!r.ok)throw new Error('Could not load '+f+'.');return r.json();};
-  const [d,s]=await Promise.allSettled([get('discovery.json'),get('status.json')]);
-  if(d.status==='fulfilled')DISC.data=d.value;else DISC.error=d.reason.message;
-  if(s.status==='fulfilled')DISC.status=s.value;else DISC.statusError=s.reason.message;
-  DISC.loading=false;DISC.loaded=true;if(['discover','status'].includes(route.view))render();
+  try {
+    const [d,s]=await Promise.allSettled([get('discovery.json'),get('status.json')]);
+    if(d.status==='fulfilled'){DISC.data=d.value;DISC.error='';}else DISC.error=d.reason?.message||'Could not load discovery data.';
+    if(s.status==='fulfilled'){DISC.status=s.value;DISC.statusError='';}else DISC.statusError=s.reason?.message||'Could not load refresh status.';
+    // Cache the result until the user explicitly retries, including partial failures.
+    DISC.loaded=true;
+  } catch(e) {
+    DISC.error=e?.message||'Could not load discovery data.';
+    DISC.loaded=true;
+  } finally {
+    DISC.loading=false;
+    if(['discover','status'].includes(route.view))render();
+  }
 }
 function viewDiscover() {
   queueMicrotask(loadDiscoveryData);
@@ -839,7 +850,7 @@ function viewDiscover() {
   const sel=all.find(c=>c.id===DISC.selected);
   return `<div class="pagehead"><div><span class="eyebrow">Automated discovery</span><h1>Discovered startups</h1><p>Companies found in startup news, press releases, Hacker News launches, YouTube videos and SEC Form D filings. Updated daily.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
   ${DISC.loading?'<div class="panel" role="status">Loading discovered companies…</div>':''}
-  ${DISC.error?`<div class="panel" role="alert">${esc(DISC.error)} <a href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Open the daily update</a></div>`:''}
+  ${DISC.error?`<div class="panel" role="alert">${esc(DISC.error)} <button class="btn" id="retry-data">Retry loading data</button> <a href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Open the daily update</a></div>`:''}
   ${DISC.data?`<p class="note">Updated ${esc(new Date(DISC.data.generated_at+'Z').toLocaleString())}. ${esc(DISC.data.disclaimer)}</p>
   ${sel?discoveredProfile(sel):''}
   <form id="disc-filters" class="panel fieldgrid">
@@ -884,7 +895,7 @@ function discoveredProfile(c) {
   <h3>Investment score: ${sc.total??'not scored'} <span class="muted small">(${esc(sc.rating)}, ${Math.round(sc.coverage*100)}% of weights scorable)</span></h3>
   <div class="tw"><table><thead><tr><th>Factor</th><th class="r">Weight</th><th class="r">Score</th><th>Evidence or reason</th></tr></thead><tbody>${sc.factors.map(x=>`<tr><td>${esc(x.label)}<div class="small muted">${esc(x.method)}</div></td><td class="r">${esc(x.weight)}%</td><td class="r">${x.score==null?'<span class="na">Unscorable</span>':esc(x.score)}${x.override?'<div class="small">analyst</div>':''}</td><td>${x.evidence.length?x.evidence.map(e=>`<div>${link(e.url,e.text)}</div>`).join(''):`<span class="muted">${esc(x.unscorable_reason||'')}</span>`}</td></tr>`).join('')}</tbody></table></div>
   <p class="note">${esc(sc.disclaimer)}</p>`:''}
-  <h3>Funding history</h3>${c.funding_rounds.length?c.funding_rounds.map(r=>`<article class="funding-round"><h3>${esc(r.round_type||'Round not specified')} · ${esc(r.amount_display)} ${evBadge(r.evidence_status)}${r.conflict?' <span class="b b-conf">Conflict</span>':''}</h3><p>${esc(r.announced_date||'Date not supplied')}${r.publishers?.length?' · '+r.publishers.map(esc).join(', '):''}</p>${r.investors.length?`<p>${r.investors.map(i=>esc(i.name)+(i.is_lead?' (lead)':'')).join(', ')}</p>`:''}${r.conflict_note?`<p class="warnline">${esc(r.conflict_note)}</p>`:''}<p>${link(r.source_url,'Source')}</p></article>`).join(''):'<p class="muted">No funding information found.</p>'}
+  <h3>Funding history</h3>${c.funding_rounds.length?c.funding_rounds.map(r=>`<article class="funding-round"><h3>${esc(r.round_type||'Round not specified')} · ${esc(r.amount_display)} ${evBadge(r.evidence_status)}${r.conflict?' <span class="b b-conf">Conflict</span>':''}</h3><p>${esc(r.announced_date||'Date not supplied')}${r.announced_date_basis==='publication_date_proxy'?' · publication date proxy; event date not verified':''}${r.publishers?.length?' · '+r.publishers.map(esc).join(', '):''}</p>${r.investors.length?`<p>${r.investors.map(i=>esc(i.name)+(i.is_lead?' (lead)':'')).join(', ')}</p>`:''}${r.funding_resolution?.state==='needs_review'?`<p class="warnline">Needs review: ${esc(r.funding_resolution.reason)}${r.funding_resolution.candidate_round_ids?.length?' · Candidate rounds: '+r.funding_resolution.candidate_round_ids.map(esc).join(', '):''}</p>`:''}${r.notes?`<p class="small muted">${esc(r.notes)}</p>`:''}${r.funding_observations?.length?`<details><summary>Source observations (${r.funding_observations.length})</summary><ul>${r.funding_observations.map(o=>`<li>${link(o.source_url,o.publisher||'Source')} · ${esc(o.amount_text||o.amount||'Amount not stated')} ${esc(o.currency||'')} · ${esc(o.evidence_status)} · ${esc(o.match_reason||'')}</li>`).join('')}</ul></details>`:''}${r.conflict_note?`<p class="warnline">${esc(r.conflict_note)}</p>`:''}<p>${link(r.source_url,'Source')}</p></article>`).join(''):'<p class="muted">No funding information found.</p>'}
   ${c.sec_filings.length?`<h3>SEC filings</h3>${c.sec_filings.map(f=>`<article class="funding-round"><p>${link(f.filing_url,'Form '+f.form_type+' · '+(f.filing_date||''))} · ${esc(f.issuer_name)} · sold ${f.total_amount_sold==null?'not stated':'$'+Number(f.total_amount_sold).toLocaleString()} of ${f.offering_amount_indefinite?'an indefinite amount':f.total_offering_amount==null?'not stated':'$'+Number(f.total_offering_amount).toLocaleString()}${f.investor_count!=null?' · '+esc(f.investor_count)+' investors':''}</p>${(f.review_flags||[]).map(x=>`<p class="small warnline">${esc(x)}</p>`).join('')}<p class="small muted">${esc(f.disclaimer)}</p></article>`).join('')}`:''}
   ${c.news.length?`<h3>News</h3><div class="news-list">${c.news.map(a=>`<article>${link(a.url,a.title)}<p class="muted small">${esc(a.publisher||'')} · ${esc(a.published_at?new Date(a.published_at+'Z').toLocaleDateString():'')} · ${a.event_types.map(esc).join(', ')||'no event tags'} · tone: ${esc(a.sentiment)}${(a.classification_evidence?.positive_terms||[]).length||(a.classification_evidence?.negative_terms||[]).length?' ('+[...(a.classification_evidence.positive_terms||[]),...(a.classification_evidence.negative_terms||[])].map(esc).join(', ')+')':''}</p></article>`).join('')}</div><p class="note">Tone describes the wording of a headline, not investment quality.</p>`:''}
   <h3>Sources and citations</h3><ul>${c.citations.map(x=>`<li>${esc(x.field)}: ${esc(x.value||'')} ${evBadge(x.evidence_status)}${x.is_estimate?' <span class="b b-plain">algorithmic estimate</span>':''} · ${link(x.source_url,x.publisher||'source')} <span class="small muted">retrieved ${esc(x.retrieved_at?.slice(0,10)||'')}</span></li>`).join('')||'<li>No citations recorded.</li>'}</ul>
@@ -906,6 +917,15 @@ function viewAbout() {
       <p class="eyebrow">Founder</p>
       <p>I'm a Master's in Finance student at Babson College. I built VentureScout so that students and professionals can research startups with a free tracker, instead of paying for an expensive subscription.</p>
       <p>VentureScout is <b>free and open source</b>: anyone can use it, read the code, or contribute on <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">GitHub</a>.</p>
+    </div>
+  </section>
+  <section class="panel founder">
+    <div class="founder-photo founder-initials" id="cofounder-photo" role="img" aria-label="Jackson Ech">JE</div>
+    <div>
+      <h2>Jackson Ech</h2>
+      <p class="eyebrow">Co-founder</p>
+      <p>My interests are in financial and management analytics. I’m helping build VentureScout to make startup research more accessible by bringing company discovery, funding information, and source-backed evidence together in one free platform.</p>
+      <p><a href="https://ca.linkedin.com/in/echjackson" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
     </div>
   </section>
   <section class="panel prose">
@@ -984,7 +1004,7 @@ function viewStatus() {
   const health={ok:'b-ok',failed:'b-conf',disabled:'b-plain',never_run:'b-unv',needs_configuration:'b-unv'};
   return `<div class="pagehead"><div><span class="eyebrow">Automation</span><h1>Data status</h1><p>The data refreshes automatically every day using GitHub Actions. No server is involved.</p></div><a class="btn primary" href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Run discovery now</a></div>
   <p class="note">"Run discovery now" opens the update on GitHub. Choose <b>Run workflow</b>; the site republishes when it finishes (about 5–10 minutes). Only the repository owner can start it.</p>
-  ${DISC.statusError?`<div class="panel" role="alert">${esc(DISC.statusError)}</div>`:''}
+  ${DISC.statusError?`<div class="panel" role="alert">${esc(DISC.statusError)} <button class="btn" id="retry-data">Retry loading status</button></div>`:''}
   ${s?`<section class="kpis"><div class="kpi"><span class="v">${esc(s.counts.companies)}</span><span class="l">Companies in database</span></div><div class="kpi"><span class="v">${esc(s.counts.articles)}</span><span class="l">Articles collected</span></div><div class="kpi"><span class="v">${esc(s.counts.sec_filings)}</span><span class="l">SEC Form D filings</span></div><div class="kpi"><span class="v small">${esc(new Date(s.generated_at+'Z').toLocaleString())}</span><span class="l">Last update</span></div></section>
   <section class="panel"><h2>Sources</h2><div class="tw"><table><thead><tr><th>Source</th><th>Status</th><th>Last success</th><th>Notes</th></tr></thead><tbody>${s.sources.map(x=>`<tr><td>${esc(x.name)}<div class="small muted">${esc(x.group)}</div></td><td><span class="b ${health[x.health]||'b-unv'}">${esc(x.health.replaceAll('_',' '))}</span></td><td>${esc(x.last_success?new Date(x.last_success+'Z').toLocaleString():'—')}</td><td class="small">${esc(x.last_error||x.disabled_reason||x.access_notes||'')}</td></tr>`).join('')}</tbody></table></div></section>
   <section class="panel"><h2>Recent runs</h2><div class="tw"><table><thead><tr><th>Started</th><th>Source</th><th>Result</th><th class="r">New items</th><th class="r">New companies</th><th>Error</th></tr></thead><tbody>${s.recent_jobs.map(j=>`<tr><td>${esc(new Date(j.started_at+'Z').toLocaleString())}</td><td>${esc(j.source_key||j.job)}</td><td>${esc(j.status)}</td><td class="r">${esc(j.items_new)}</td><td class="r">${esc(j.startups_created)}</td><td class="small">${esc(j.error||'')}</td></tr>`).join('')}</tbody></table></div></section>`:''}`;
@@ -1033,6 +1053,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.scroll){const el=document.getElementById(t.dataset.scroll);el?.scrollIntoView({behavior:'smooth'});el?.querySelector('input')?.focus({preventScroll:true});}
   if(t.dataset.discTrack){startTracking(DISC.data.companies.find(c=>c.id===Number(t.dataset.discTrack)));}
   if(t.id==='disc-more'){DISC.limit+=60;render();}
+  if(t.id==='retry-data'){loadDiscoveryData({retry:true});}
 });
 
 /* Browser agent tools use the same data and navigation as the visible UI. */
