@@ -822,14 +822,25 @@ const evBadge=st=>st?`<span class="b ${st==='confirmed'||st==='regulatory_filing
 const confB=c=>c?.label?`<span class="b b-${esc(c.label.toLowerCase())}" tabindex="0" data-tip="Data confidence ${esc(c.score)}/100: how well-supported this record is, not investment quality">${esc(c.label)} confidence</span>`:'';
 const scoreB=s=>s?.total!=null?`<span class="b b-plain" tabindex="0" data-tip="Preliminary research indicator (coverage ${Math.round((s.coverage||0)*100)}% of weights). Not an investment recommendation.">Score ${esc(s.total)} · ${esc(s.rating)}</span>`:'';
 const FLAG_TEXT={conflicting_funding:'Conflicting funding figures',possible_duplicate:'Possible duplicate',stale:'Stale information',name_collision:'Similar name to another company'};
-async function loadDiscoveryData() {
-  if(DISC.loading||DISC.loaded)return;
+async function loadDiscoveryData({retry=false}={}) {
+  if(DISC.loading)return;
+  if(retry){DISC.loaded=false;DISC.error='';DISC.statusError='';}
+  if(DISC.loaded)return;
   DISC.loading=true;
   const get=async f=>{const r=await fetch('data/'+f,{cache:'no-cache'});if(r.status===404)throw new Error('Not available yet: the first daily update has not run.');if(!r.ok)throw new Error('Could not load '+f+'.');return r.json();};
-  const [d,s]=await Promise.allSettled([get('discovery.json'),get('status.json')]);
-  if(d.status==='fulfilled')DISC.data=d.value;else DISC.error=d.reason.message;
-  if(s.status==='fulfilled')DISC.status=s.value;else DISC.statusError=s.reason.message;
-  DISC.loading=false;DISC.loaded=true;if(['discover','status'].includes(route.view))render();
+  try {
+    const [d,s]=await Promise.allSettled([get('discovery.json'),get('status.json')]);
+    if(d.status==='fulfilled'){DISC.data=d.value;DISC.error='';}else DISC.error=d.reason?.message||'Could not load discovery data.';
+    if(s.status==='fulfilled'){DISC.status=s.value;DISC.statusError='';}else DISC.statusError=s.reason?.message||'Could not load refresh status.';
+    // Cache the result until the user explicitly retries, including partial failures.
+    DISC.loaded=true;
+  } catch(e) {
+    DISC.error=e?.message||'Could not load discovery data.';
+    DISC.loaded=true;
+  } finally {
+    DISC.loading=false;
+    if(['discover','status'].includes(route.view))render();
+  }
 }
 function viewDiscover() {
   queueMicrotask(loadDiscoveryData);
@@ -839,7 +850,7 @@ function viewDiscover() {
   const sel=all.find(c=>c.id===DISC.selected);
   return `<div class="pagehead"><div><span class="eyebrow">Automated discovery</span><h1>Discovered startups</h1><p>Companies found in startup news, press releases, Hacker News launches, YouTube videos and SEC Form D filings. Updated daily.</p></div><button class="btn" data-nav="tracking">My startups (${account.companies.length})</button></div>
   ${DISC.loading?'<div class="panel" role="status">Loading discovered companies…</div>':''}
-  ${DISC.error?`<div class="panel" role="alert">${esc(DISC.error)} <a href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Open the daily update</a></div>`:''}
+  ${DISC.error?`<div class="panel" role="alert">${esc(DISC.error)} <button class="btn" id="retry-data">Retry loading data</button> <a href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Open the daily update</a></div>`:''}
   ${DISC.data?`<p class="note">Updated ${esc(new Date(DISC.data.generated_at+'Z').toLocaleString())}. ${esc(DISC.data.disclaimer)}</p>
   ${sel?discoveredProfile(sel):''}
   <form id="disc-filters" class="panel fieldgrid">
@@ -984,7 +995,7 @@ function viewStatus() {
   const health={ok:'b-ok',failed:'b-conf',disabled:'b-plain',never_run:'b-unv',needs_configuration:'b-unv'};
   return `<div class="pagehead"><div><span class="eyebrow">Automation</span><h1>Data status</h1><p>The data refreshes automatically every day using GitHub Actions. No server is involved.</p></div><a class="btn primary" href="${GITHUB_ACTIONS}" target="_blank" rel="noopener">Run discovery now</a></div>
   <p class="note">"Run discovery now" opens the update on GitHub. Choose <b>Run workflow</b>; the site republishes when it finishes (about 5–10 minutes). Only the repository owner can start it.</p>
-  ${DISC.statusError?`<div class="panel" role="alert">${esc(DISC.statusError)}</div>`:''}
+  ${DISC.statusError?`<div class="panel" role="alert">${esc(DISC.statusError)} <button class="btn" id="retry-data">Retry loading status</button></div>`:''}
   ${s?`<section class="kpis"><div class="kpi"><span class="v">${esc(s.counts.companies)}</span><span class="l">Companies in database</span></div><div class="kpi"><span class="v">${esc(s.counts.articles)}</span><span class="l">Articles collected</span></div><div class="kpi"><span class="v">${esc(s.counts.sec_filings)}</span><span class="l">SEC Form D filings</span></div><div class="kpi"><span class="v small">${esc(new Date(s.generated_at+'Z').toLocaleString())}</span><span class="l">Last update</span></div></section>
   <section class="panel"><h2>Sources</h2><div class="tw"><table><thead><tr><th>Source</th><th>Status</th><th>Last success</th><th>Notes</th></tr></thead><tbody>${s.sources.map(x=>`<tr><td>${esc(x.name)}<div class="small muted">${esc(x.group)}</div></td><td><span class="b ${health[x.health]||'b-unv'}">${esc(x.health.replaceAll('_',' '))}</span></td><td>${esc(x.last_success?new Date(x.last_success+'Z').toLocaleString():'—')}</td><td class="small">${esc(x.last_error||x.disabled_reason||x.access_notes||'')}</td></tr>`).join('')}</tbody></table></div></section>
   <section class="panel"><h2>Recent runs</h2><div class="tw"><table><thead><tr><th>Started</th><th>Source</th><th>Result</th><th class="r">New items</th><th class="r">New companies</th><th>Error</th></tr></thead><tbody>${s.recent_jobs.map(j=>`<tr><td>${esc(new Date(j.started_at+'Z').toLocaleString())}</td><td>${esc(j.source_key||j.job)}</td><td>${esc(j.status)}</td><td class="r">${esc(j.items_new)}</td><td class="r">${esc(j.startups_created)}</td><td class="small">${esc(j.error||'')}</td></tr>`).join('')}</tbody></table></div></section>`:''}`;
@@ -1033,6 +1044,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.scroll){const el=document.getElementById(t.dataset.scroll);el?.scrollIntoView({behavior:'smooth'});el?.querySelector('input')?.focus({preventScroll:true});}
   if(t.dataset.discTrack){startTracking(DISC.data.companies.find(c=>c.id===Number(t.dataset.discTrack)));}
   if(t.id==='disc-more'){DISC.limit+=60;render();}
+  if(t.id==='retry-data'){loadDiscoveryData({retry:true});}
 });
 
 /* Browser agent tools use the same data and navigation as the visible UI. */
