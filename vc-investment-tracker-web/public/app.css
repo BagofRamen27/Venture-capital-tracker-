@@ -51,7 +51,8 @@ h3 { font-size: 15px; font-weight: 600; }
 .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
 .topbar-in { max-width: 1240px; margin: 0 auto; padding: 10px 16px 0; display: flex; flex-direction: column; gap: 6px; }
 .brandrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
-.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-logo { width: 32px; height: 32px; flex: none; border-radius: 7px; }
 .brand b { font-family: var(--f-display); font-size: 18px; font-weight: 600; }
 .mode.live { background: var(--good-soft); color: var(--good); border-color: transparent; }
 .mode { font-size: 11.5px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; }
