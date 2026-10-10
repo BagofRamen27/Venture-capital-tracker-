@@ -919,6 +919,15 @@ function viewAbout() {
       <p>VentureScout is <b>free and open source</b>: anyone can use it, read the code, or contribute on <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">GitHub</a>.</p>
     </div>
   </section>
+  <section class="panel founder">
+    <div class="founder-photo founder-initials" id="cofounder-photo" role="img" aria-label="Jackson Ech">JE</div>
+    <div>
+      <h2>Jackson Ech</h2>
+      <p class="eyebrow">Co-founder</p>
+      <p>My interests are in financial and management analytics. I’m helping build VentureScout to make startup research more accessible by bringing company discovery, funding information, and source-backed evidence together in one free platform.</p>
+      <p><a href="https://ca.linkedin.com/in/echjackson" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
+    </div>
+  </section>
   <section class="panel prose">
     <h2>What VentureScout does</h2>
     <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches, YouTube videos and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
