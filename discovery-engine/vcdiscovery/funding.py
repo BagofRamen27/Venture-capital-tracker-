@@ -146,9 +146,11 @@ def record_round(
         dated_candidates = []
 
     def fully_comparable(rnd: FundingRound) -> bool:
+        # Unknown round labels may be tolerated as weaker evidence, but two known
+        # labels must agree. Amount comparison requires a known shared currency.
         return (
             announced is not None and rnd.announced_date is not None
-            and rnd.round_type is not None and round_type is not None and rnd.round_type == round_type
+            and (rnd.round_type is None or round_type is None or rnd.round_type == round_type)
             and rnd.currency is not None and currency is not None and rnd.currency == currency
             and rnd.evidence_status != "regulatory_filing" and evidence_status != "regulatory_filing"
         )
@@ -156,7 +158,8 @@ def record_round(
     # A mismatch is a conflict only when date, round type and currency are comparable.
     conflicts = [
         r for r in dated_candidates
-        if fully_comparable(r) and _amounts_agree(r.amount, amount) is False
+        if fully_comparable(r) and r.round_type is not None and round_type is not None
+        and r.round_type == round_type and _amounts_agree(r.amount, amount) is False
         and r.evidence_status in RAISED_STATUSES and evidence_status in RAISED_STATUSES
     ]
     strong_matches = [
@@ -205,8 +208,7 @@ def record_round(
         else:
             date_unknown = True
         fields_missing = (
-            candidate.round_type is None or round_type is None
-            or candidate.currency is None or currency is None
+            candidate.currency is None or currency is None
             or candidate.amount is None or amount is None
         )
         if not date_unknown and not fields_missing:
@@ -259,7 +261,7 @@ def record_round(
         rnd.publishers = publishers
         outcome = "corroborated" if independent_source else "same_source"
         reason = (
-            f"Unique candidate with matching company, round type and currency; event dates are within "
+            f"Unique candidate with no known round-type contradiction and matching currency; event dates are within "
             f"{SAME_EVENT_WINDOW_DAYS} days and amounts agree within {AMOUNT_TOLERANCE:.0%}"
         )
         if syndicated_copy:
