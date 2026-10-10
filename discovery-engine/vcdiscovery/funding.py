@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import RAISED_STATUSES, FundingRound, Investor, RoundInvestor, Startup, utcnow
+from .models import RAISED_STATUSES, FundingRound, Investor, RoundInvestor, Startup
 from .text import normalize_company_name
 
 SAME_EVENT_WINDOW_DAYS = 60
@@ -62,18 +62,23 @@ def record_round(
 ) -> tuple[FundingRound, str]:
     """Add a funding observation. Returns (round, outcome) where outcome is
     'new' | 'corroborated' | 'same_source' | 'conflict'."""
-    announced = announced or utcnow().date()
-    window_lo, window_hi = announced - timedelta(days=SAME_EVENT_WINDOW_DAYS), announced + timedelta(days=SAME_EVENT_WINDOW_DAYS)
-    candidates = [
-        r for r in startup.rounds
-        if r.evidence_status != "regulatory_filing" and evidence_status != "regulatory_filing"
-        and (r.announced_date is None or window_lo <= r.announced_date <= window_hi)
-        and (r.round_type is None or round_type is None or r.round_type == round_type)
-        and (r.currency is None or currency is None or r.currency == currency)
-    ]
+    # A missing event date is unknown, not today's date. Without a date, do not
+    # auto-match by a synthetic date window; preserve the observation separately.
+    if announced is None:
+        candidates = []
+    else:
+        window_lo = announced - timedelta(days=SAME_EVENT_WINDOW_DAYS)
+        window_hi = announced + timedelta(days=SAME_EVENT_WINDOW_DAYS)
+        candidates = [
+            r for r in startup.rounds
+            if r.evidence_status != "regulatory_filing" and evidence_status != "regulatory_filing"
+            and r.announced_date is not None and window_lo <= r.announced_date <= window_hi
+            and (r.round_type is None or round_type is None or r.round_type == round_type)
+            and (r.currency is None or currency is None or r.currency == currency)
+        ]
     for rnd in candidates:
         agree = _amounts_agree(rnd.amount, amount)
-        if agree is False:
+        if agree is not True:
             continue
         publishers = list(rnd.publishers or [])
         unconfirmed = {"rumor", "target"}
