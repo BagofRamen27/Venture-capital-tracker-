@@ -936,44 +936,52 @@ function viewAbout() {
     img.onload = () => { const slot = document.getElementById("founder-photo"); if (slot) { img.alt = "Alexander Liu"; img.className = "founder-photo"; slot.replaceWith(img); } };
     img.src = FOUNDER_PHOTO;
   });
-  return `<section class="hero" aria-labelledby="hero-title">
-    <div class="hero-art"><img src="images/logo-hero.webp" alt="VentureScout logo: a scout with binoculars on a mountain peak beside a rising bar chart" width="560" height="474"></div>
-    <div class="hero-copy">
-      <h1 id="hero-title"><span class="hero-v">Venture</span><span class="hero-s">Scout</span></h1>
-      <p class="hero-tag">Find new startups early, see the evidence behind every funding report, and track the ones you like. Free and open source.</p>
-      <div class="hero-cta"><button type="button" class="btn primary" data-nav="discover">Explore startups</button><button type="button" class="btn" data-nav="map">See the map</button></div>
+  return `<div class="about">
+  <section class="about-hero" aria-labelledby="hero-title">
+    <img class="about-hero-logo" src="images/logo-hero.webp" alt="VentureScout logo: a scout with binoculars on a mountain peak beside a rising bar chart" width="560" height="474">
+    <p class="about-kicker">Free &middot; Open source &middot; Updated every day</p>
+    <h1 id="hero-title"><span class="hero-v">Venture</span><span class="hero-s">Scout</span></h1>
+    <p class="about-tag">Find new startups early, see the evidence behind every funding report, and track the ones you like.</p>
+    <div class="about-cta"><button type="button" class="btn primary" data-nav="discover">Explore startups</button><button type="button" class="btn" data-nav="map">See the map</button></div>
+  </section>
+
+  <section aria-labelledby="about-what">
+    <h2 class="about-h2" id="about-what">What VentureScout does</h2>
+    <div class="about-grid">
+      <article class="about-card"><svg class="about-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 4.4 12.4l4.3 4.3 1.4-1.4-4.3-4.3A7 7 0 0 0 11 4Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/></svg><h3>Finds startups every day</h3><p>Scans public funding news, Hacker News launches, YouTube videos and SEC Form D filings for new companies.</p></article>
+      <article class="about-card"><svg class="about-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1.2 13.6-3.5-3.5 1.4-1.4 2.1 2.1 4.6-4.6 1.4 1.4-6 6Z"/></svg><h3>Checks the evidence</h3><p>Labels every funding report: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p></article>
+      <article class="about-card"><svg class="about-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z"/></svg><h3>Scores with sources</h3><p>Each company gets a data-confidence rating and a preliminary research score that shows the evidence behind it and says when information is missing.</p></article>
+      <article class="about-card"><svg class="about-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4H5V4Zm2 6h10v4H7v-4Zm2 6h6v4H9v-4Z"/></svg><h3>Your own pipeline</h3><p>Save companies to your own list, score them, and track them through a deal pipeline, all in your browser.</p></article>
     </div>
   </section>
-  <section class="panel prose">
-    <h2>What VentureScout does</h2>
-    <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches, YouTube videos and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
-    <p>Each company gets a data-confidence rating and a preliminary research score that shows the evidence behind it and says when information is missing. You can save companies to your own list, score them, and track them through a deal pipeline, all in your browser.</p>
-    <h2>Data and sources</h2>
-    <p>Data comes only from free, public and legally usable sources, and every fact links back to where it came from. See the <button type="button" class="link" data-nav="status">Data status</button> page for the full list and when each source last updated.</p>
-    <p>Video results use YouTube API Services. See the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p>
-    <p class="note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
-    <h2>Open source</h2>
-    <p>VentureScout is open source under the MIT license. The code is public: <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">github.com/BagofRamen27/Venture-capital-tracker-</a>. Suggestions and contributions are welcome.</p>
+
+  <section class="about-grid about-grid-2">
+    <article class="about-card"><h3>Data and sources</h3><p>Data comes only from free, public and legally usable sources, and every fact links back to where it came from. See the <button type="button" class="link" data-nav="status">Data status</button> page for the full list and when each source last updated.</p><p class="about-small">Video results use YouTube API Services. See the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p></article>
+    <article class="about-card"><h3>Open source</h3><p>VentureScout is open source under the MIT license. Suggestions and contributions are welcome.</p><p><a class="btn" href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">View the code on GitHub</a></p></article>
   </section>
-  <section class="panel founder">
-    <div class="founder-photo founder-initials" id="founder-photo" role="img" aria-label="Alexander Liu">AL</div>
-    <div>
-      <h2>Alexander Liu</h2>
-      <p class="eyebrow">Founder</p>
-      <p>I'm a Master's in Finance student at Babson College. I built VentureScout so that students and professionals can research startups with a free tracker, instead of paying for an expensive subscription.</p>
-      <p>VentureScout is <b>free and open source</b>: anyone can use it, read the code, or contribute on <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">GitHub</a>.</p>
-      <p><a href="https://www.linkedin.com/in/alexliul" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
+
+  <section aria-labelledby="about-team">
+    <h2 class="about-h2" id="about-team">Meet the founders</h2>
+    <div class="about-grid about-grid-2">
+      <article class="about-card about-person">
+        <div class="founder-photo founder-initials" id="founder-photo" role="img" aria-label="Alexander Liu">AL</div>
+        <h3>Alexander Liu</h3>
+        <p class="about-role">Founder</p>
+        <p>I'm a Master's in Finance student at Babson College. I built VentureScout so that students and professionals can research startups with a free tracker, instead of paying for an expensive subscription.</p>
+        <p><a class="btn" href="https://www.linkedin.com/in/alexliul" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
+      </article>
+      <article class="about-card about-person">
+        <div class="founder-photo founder-initials" id="cofounder-photo" role="img" aria-label="Jackson Ech">JE</div>
+        <h3>Jackson Ech</h3>
+        <p class="about-role">Co-founder</p>
+        <p>My interests are in financial and management analytics. I’m helping build VentureScout to make startup research more accessible by bringing company discovery, funding information, and source-backed evidence together in one free platform.</p>
+        <p><a class="btn" href="https://ca.linkedin.com/in/echjackson" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
+      </article>
     </div>
   </section>
-  <section class="panel founder">
-    <div class="founder-photo founder-initials" id="cofounder-photo" role="img" aria-label="Jackson Ech">JE</div>
-    <div>
-      <h2>Jackson Ech</h2>
-      <p class="eyebrow">Co-founder</p>
-      <p>My interests are in financial and management analytics. I’m helping build VentureScout to make startup research more accessible by bringing company discovery, funding information, and source-backed evidence together in one free platform.</p>
-      <p><a href="https://ca.linkedin.com/in/echjackson" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
-    </div>
-  </section>`;
+
+  <p class="about-note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
+</div>`;
 }
 
 /* ---------- HALL OF CONTRIBUTORS ---------- */
