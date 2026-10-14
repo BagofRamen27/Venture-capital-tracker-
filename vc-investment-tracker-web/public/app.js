@@ -1128,6 +1128,8 @@ if (document.modelContext?.registerTool) {
 const _render = render;
 render = function () { _render(); if (route.view === "directory") renderDirResults(); };
 route = parseHash();
+// Links saved before About became the front page end in #dashboard; open those on the front page too.
+if (route.view === "dashboard") { route = { view: "about" }; try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
 render();
 }
 
