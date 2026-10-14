@@ -230,22 +230,49 @@ function parseHash() {
   return { view: "dashboard" };
 }
 function go(view, id) {
+  const menuWasOpen = $("#nav-toggle").getAttribute("aria-expanded") === "true";
+  setNavigationOpen(false);
   const token = view === "profile" ? id : view;
   route = view === "profile" ? { view, id } : { view };
   try { if (location.hash.slice(1) !== token) history.pushState(null, "", "#" + token); } catch (e) {}
   render(); scrollTo(0, 0);
+  if (menuWasOpen) $("#app").focus({ preventScroll: true });
 }
 addEventListener("popstate", () => { route = parseHash(); render(); });
 addEventListener("hashchange", () => { const r = parseHash(); if (r.view !== route.view || r.id !== route.id) { route = r; render(); } });
 
 function updateLogCount() { $("#logn").textContent = EDITS.log.length; }
 
+function setNavigationOpen(open) {
+  $("#tabs").classList.toggle("is-open", open);
+  $("#nav-toggle").setAttribute("aria-expanded", String(open));
+}
+$("#nav-toggle").addEventListener("click", () => setNavigationOpen($("#nav-toggle").getAttribute("aria-expanded") !== "true"));
+$(".skip-link").addEventListener("click", e => {
+  e.preventDefault();
+  $("#app").focus();
+  $("#app").scrollIntoView();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("#nav-toggle").getAttribute("aria-expanded") === "true") {
+    setNavigationOpen(false);
+    $("#nav-toggle").focus();
+  }
+});
+
 function render() {
   tip.hidden = true;
   const active = route.view === "profile" ? "directory" : route.view;
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  const pageName = $("#tabs [aria-current='page']")?.textContent || "Local edits";
+  $("#nav-toggle").textContent = "Menu · " + pageName;
   const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, map: mapUI.view, contributors: viewContributors, about: viewAbout }[route.view];
   $("#app").innerHTML = v(route.id);
+  $("#app").querySelectorAll(".tw, .kanban").forEach(region => {
+    region.tabIndex = 0;
+    region.setAttribute("role", "region");
+    region.setAttribute("aria-label", region.classList.contains("kanban") ? "Deal stages, scroll horizontally" : "Data table, scroll horizontally if needed");
+  });
   document.title = route.view === "profile" ? BYID[route.id].company_name + " · VentureScout" : "VentureScout";
   updateLogCount();
 }
@@ -667,7 +694,7 @@ function ddDots(p) {
 function viewPipeline() {
   const view = UI.pipeView;
   const head = `<div class="pagehead"><div><span class="eyebrow">Due diligence tracker</span><h1>Deal pipeline</h1>
-    <p>Move startups between stages and track the six diligence checks. Changes are saved in this browser and logged as applied change requests, ready for the Sheets sync.</p></div>
+    <p>Move startups between stages and track the six diligence checks. Changes are saved in this browser and recorded in Local edits.</p></div>
     <div class="seg" role="group" aria-label="View"><button type="button" data-pview="board" aria-pressed="${view === "board"}">Board</button><button type="button" data-pview="table" aria-pressed="${view === "table"}">Table</button></div></div>`;
   if (view === "table") {
     return head + `<div class="tw"><table><thead><tr><th>Company</th><th>Stage</th><th>Priority</th><th>Owner</th>${DD.map(d => `<th>${d[1]}</th>`).join("")}<th class="r">Done</th><th>Suggested next action</th></tr></thead><tbody>
@@ -1015,7 +1042,7 @@ function viewTracking() {
   ${account.error?`<div class="panel" role="alert">${esc(account.error)}</div>`:''}
   ${SCOUT.saveError&&!SCOUT.form?`<p class="panel" role="alert">${esc(SCOUT.saveError)}</p>`:''}
   ${SCOUT.form?companyForm(SCOUT.form):''}
-  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button><button class="btn" id="backup-export" ${account.companies.length?'':'disabled'}>Back up (download)</button><label class="btn">Restore backup<input type="file" id="backup-import" accept="application/json,.json" hidden></label></div>
+  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button><button class="btn" id="backup-export" ${account.companies.length?'':'disabled'}>Back up (download)</button><label class="btn">Restore backup<input type="file" id="backup-import" accept="application/json,.json" class="visually-hidden"></label></div>
   ${SCOUT.importMsg?`<p class="note" role="status">${esc(SCOUT.importMsg)}</p>`:''}
   <div class="scout-grid">${rows.map(c=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry)} · ${esc(c.stage)}</span><h2><button class="link" data-go="${esc(c.id)}">${esc(c.name)}</button></h2><p>${esc(c.location||'Location not supplied')}</p>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p class="muted">${esc(c.source)} · Added ${esc(new Date(c.createdAt).toLocaleDateString())}</p><div class="row"><a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Website</a><button class="btn" data-edit-company="${esc(c.id)}">Edit details</button><button class="btn" data-go="${esc(c.id)}">Research & score</button><button class="btn" data-remove-company="${esc(c.id)}">Remove</button></div></article>`).join('')||'<section class="panel empty">No saved startups yet. Add a company or track one from Discover.</section>'}</div>
   <p class="note">Saved companies, scores and pipeline edits stay in this browser and do not sync between devices or people. Clearing browser data removes them; back up first.</p>`;

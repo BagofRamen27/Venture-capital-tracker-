@@ -12,31 +12,39 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="app.css">
-<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
+<a class="skip-link" href="#app">Skip to content</a>
 <header class="topbar">
   <div class="topbar-in">
     <div class="brandrow">
       <div class="brand"><img src="images/logo-mark.png" class="brand-logo" alt="" width="32" height="32"><b>VentureScout</b><span class="mode" id="modebadge" tabindex="0" data-tip="Loading data">Loading…</span></div>
       <button class="logbtn" id="logbtn" type="button">Local edits <span class="n" id="logn">0</span></button>
     </div>
+    <button class="nav-toggle" id="nav-toggle" type="button" aria-controls="tabs" aria-expanded="false">Menu</button>
     <nav class="tabs" id="tabs" aria-label="Sections">
-      <button type="button" data-nav="discover">Discover</button>
-      <button type="button" data-nav="tracking">My startups</button>
+      <div class="nav-group" role="group" aria-labelledby="nav-research"><span class="nav-label" id="nav-research">Research</span>
       <button type="button" data-nav="dashboard">Dashboard</button>
+      <button type="button" data-nav="discover">Discover</button>
       <button type="button" data-nav="directory">Directory</button>
       <button type="button" data-nav="map">Map</button>
+      <button type="button" data-nav="financials">Financials</button>
+      </div>
+      <div class="nav-group" role="group" aria-labelledby="nav-workspace"><span class="nav-label" id="nav-workspace">Workspace</span>
+      <button type="button" data-nav="tracking">My startups</button>
       <button type="button" data-nav="scorecard">Scorecard</button>
       <button type="button" data-nav="pipeline">Deal pipeline</button>
-      <button type="button" data-nav="financials">Financials</button>
+      </div>
+      <div class="nav-group" role="group" aria-labelledby="nav-project"><span class="nav-label" id="nav-project">Project</span>
       <button type="button" data-nav="status">Data status</button>
       <button type="button" data-nav="contributors">Hall of contributors</button>
       <button type="button" data-nav="about">About</button>
+      </div>
     </nav>
   </div>
 </header>
-<main id="app" aria-live="polite"></main>
+<main id="app" tabindex="-1" aria-live="polite"></main>
 <noscript><p>This tracker needs JavaScript enabled to display the research data.</p></noscript>
 <div id="tip" hidden></div>
 <script src="scout.js" defer></script>
