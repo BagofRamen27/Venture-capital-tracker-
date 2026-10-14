@@ -937,6 +937,17 @@ function viewAbout() {
     img.src = FOUNDER_PHOTO;
   });
   return `<div class="pagehead"><div><span class="eyebrow">About</span><h1>About VentureScout</h1><p>A free, open-source startup research tool for students and professionals.</p></div></div>
+  <section class="panel prose">
+    <h2>What VentureScout does</h2>
+    <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches, YouTube videos and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
+    <p>Each company gets a data-confidence rating and a preliminary research score that shows the evidence behind it and says when information is missing. You can save companies to your own list, score them, and track them through a deal pipeline, all in your browser.</p>
+    <h2>Data and sources</h2>
+    <p>Data comes only from free, public and legally usable sources, and every fact links back to where it came from. See the <button type="button" class="link" data-nav="status">Data status</button> page for the full list and when each source last updated.</p>
+    <p>Video results use YouTube API Services. See the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p>
+    <p class="note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
+    <h2>Open source</h2>
+    <p>VentureScout is open source under the MIT license. The code is public: <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">github.com/BagofRamen27/Venture-capital-tracker-</a>. Suggestions and contributions are welcome.</p>
+  </section>
   <section class="panel founder">
     <div class="founder-photo founder-initials" id="founder-photo" role="img" aria-label="Alexander Liu">AL</div>
     <div>
@@ -955,17 +966,6 @@ function viewAbout() {
       <p>My interests are in financial and management analytics. I’m helping build VentureScout to make startup research more accessible by bringing company discovery, funding information, and source-backed evidence together in one free platform.</p>
       <p><a href="https://ca.linkedin.com/in/echjackson" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
     </div>
-  </section>
-  <section class="panel prose">
-    <h2>What VentureScout does</h2>
-    <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches, YouTube videos and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
-    <p>Each company gets a data-confidence rating and a preliminary research score that shows the evidence behind it and says when information is missing. You can save companies to your own list, score them, and track them through a deal pipeline, all in your browser.</p>
-    <h2>Data and sources</h2>
-    <p>Data comes only from free, public and legally usable sources, and every fact links back to where it came from. See the <button type="button" class="link" data-nav="status">Data status</button> page for the full list and when each source last updated.</p>
-    <p>Video results use YouTube API Services. See the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p>
-    <p class="note">VentureScout is a research tool, not investment advice. Scores are preliminary indicators based on public information only.</p>
-    <h2>Open source</h2>
-    <p>VentureScout is open source under the MIT license. The code is public: <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">github.com/BagofRamen27/Venture-capital-tracker-</a>. Suggestions and contributions are welcome.</p>
   </section>`;
 }
 
