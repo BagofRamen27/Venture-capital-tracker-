@@ -222,12 +222,12 @@ function niceTicks(max, n = 4) {
 }
 
 /* ---------- routing ---------- */
-let route = { view: "dashboard", id: null };
+let route = { view: "about", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
   if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
   if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "map", "contributors", "about"].includes(h)) return { view: h };
-  return { view: "dashboard" };
+  return { view: "about" };
 }
 function go(view, id) {
   const menuWasOpen = $("#nav-toggle").getAttribute("aria-expanded") === "true";
