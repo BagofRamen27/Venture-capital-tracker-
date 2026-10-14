@@ -81,7 +81,7 @@ def build_site_data(session: Session, settings: Settings) -> dict[str, dict]:
             "never_run" if not last else ("ok" if last.status in ("success", "partial") else last.status))
         sources.append({"key": cfg["key"], "name": cfg["name"], "group": cfg["group"], "health": health,
                         "last_success": ser.iso(last_ok.get(cfg["key"])),
-                        "last_error": problem or (last.error_message if last and last.status == "failed" else None),
+                        "last_error": problem or (ser.sanitize_job_error(last.error_message) if last and last.status == "failed" else None),
                         "access_notes": cfg.get("access_notes"), "disabled_reason": cfg.get("disabled_reason")})
     status = {
         "generated_at": now, "sources": sources, "schedule": describe(),
