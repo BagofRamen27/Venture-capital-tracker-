@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from .. import __version__
@@ -43,6 +44,18 @@ from ..scoring import FACTORS, METHODS, load_config, save_weights, score_startup
 from ..sources import configuration_problem, load_source_configs
 from ..text import company_domain, normalize_company_name
 from . import serializers as ser
+
+
+def database_backend(url: str | None) -> str:
+    """Return only the database dialect (e.g. 'sqlite', 'postgresql') without credentials or location."""
+    if not url:
+        return "unknown"
+    try:
+        backend = make_url(url).get_backend_name()
+        return backend or "unknown"
+    except Exception:
+        # Never return any substring of a malformed URL that could leak credentials or paths
+        return "unknown"
 
 
 # ----------------------------------------------------------------- request bodies
@@ -144,7 +157,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/health", tags=["system"])
     def health(session: Session = Depends(get_db)):
-        return {"status": "ok", "version": __version__, "database": settings.resolved_database_url.split("///")[0],
+        return {"status": "ok", "version": __version__, "database": database_backend(settings.resolved_database_url),
                 "startups": session.scalar(select(func.count(Startup.id))), "time": utcnow().isoformat()}
 
     @app.get("/api/reference", tags=["system"])

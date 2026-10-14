@@ -23,7 +23,10 @@ def test_core_endpoints(settings):
     ingest(settings, [news("Acme Robotics raises $12M Series A led by Example Ventures", "https://a.example/1"),
                       news("Qonto raises €50M Series D", "https://a.example/2")])
     c = client_for(settings)
-    assert c.get("/api/health").json()["startups"] == 2
+    health = c.get("/api/health").json()
+    assert health["status"] == "ok"
+    assert health["database"] == "sqlite"
+    assert health["startups"] == 2
     listing = c.get("/api/startups", params={"stage": "Series A"}).json()
     assert listing["total"] == 1 and listing["items"][0]["name"] == "Acme Robotics"
     sid = listing["items"][0]["id"]
@@ -114,3 +117,107 @@ def test_site_export_writes_website_data(settings, tmp_path):
     status = json.loads((tmp_path / "status.json").read_text())
     assert status["counts"]["companies"] == 1
     assert {x["key"] for x in status["sources"]} >= {"hackernews", "sec_form_d", "techcrunch_funding"}
+
+
+def test_database_backend_utility():
+    from vcdiscovery.api.app import database_backend
+
+    assert database_backend("sqlite:///./data/vc_discovery.db") == "sqlite"
+    assert database_backend("sqlite:///:memory:") == "sqlite"
+    assert database_backend("sqlite:////abs/path/db.sqlite") == "sqlite"
+    assert database_backend("postgresql://user:pass@host:5432/vcdb") == "postgresql"
+    assert database_backend("postgresql+psycopg://user:pass@host:5432/vcdb") == "postgresql"
+    assert database_backend("postgresql+asyncpg://user:pass@host:5432/vcdb") == "postgresql"
+    assert database_backend("mysql+pymysql://user:pass@host:3306/vcdb") == "mysql"
+    # Malformed, empty, or non-URI inputs must fail closed to 'unknown' without leaking
+    assert database_backend("") == "unknown"
+    assert database_backend(None) == "unknown"
+    assert database_backend("not-a-valid-database-url") == "unknown"
+    assert database_backend("://corrupted") == "unknown"
+
+
+def test_health_endpoint_redacts_credentials_for_network_database(monkeypatch):
+    from unittest.mock import MagicMock
+    from vcdiscovery.config import Settings
+
+    synthetic_user = "sec_analyst_user"
+    synthetic_pass = "super_secret_p@ss#123"
+    synthetic_host = "private-db.internal.cloud"
+    synthetic_port = "5432"
+    synthetic_dbname = "confidential_vc_discovery"
+
+    secret_url = (
+        f"postgresql+psycopg://{synthetic_user}:{synthetic_pass}@"
+        f"{synthetic_host}:{synthetic_port}/{synthetic_dbname}?sslmode=require"
+    )
+    custom_settings = Settings(_env_file=None, database_url=secret_url)
+
+    # Mock configure and init_db in app.py so create_app does not attempt a real connection
+    monkeypatch.setattr("vcdiscovery.api.app.configure", lambda *a, **k: None)
+    monkeypatch.setattr("vcdiscovery.api.app.init_db", lambda *a, **k: None)
+
+    app = create_app(custom_settings)
+    mock_session = MagicMock()
+    mock_session.scalar.return_value = 5
+    app.dependency_overrides[db.get_db] = lambda: mock_session
+
+    client = TestClient(app)
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["database"] == "postgresql"
+    assert data["startups"] == 5
+
+    # Strictly assert sensitive connection components are completely absent from serialized response
+    raw_response = response.text
+    assert synthetic_user not in raw_response
+    assert synthetic_pass not in raw_response
+    assert synthetic_host not in raw_response
+    assert synthetic_port not in raw_response
+    assert synthetic_dbname not in raw_response
+    assert "sslmode" not in raw_response
+
+
+def test_health_endpoint_sqlite_path_redaction(settings):
+    c = client_for(settings)
+    response = c.get("/api/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["database"] == "sqlite"
+
+    # Strictly assert that the filesystem path of the SQLite database does not leak
+    raw_text = response.text
+    assert ".db" not in raw_text
+    assert "test.db" not in raw_text
+    assert str(settings.resolve_path("data")) not in raw_text
+
+
+def test_health_endpoint_malformed_url_safety(monkeypatch):
+    from unittest.mock import MagicMock
+    from vcdiscovery.config import Settings
+
+    malformed_secret_url = "://hidden_user:hidden_secret@leak_host/leak_path"
+    custom_settings = Settings(_env_file=None, database_url=malformed_secret_url)
+
+    monkeypatch.setattr("vcdiscovery.api.app.configure", lambda *a, **k: None)
+    monkeypatch.setattr("vcdiscovery.api.app.init_db", lambda *a, **k: None)
+
+    app = create_app(custom_settings)
+    mock_session = MagicMock()
+    mock_session.scalar.return_value = 0
+    app.dependency_overrides[db.get_db] = lambda: mock_session
+
+    client = TestClient(app)
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["database"] == "unknown"
+
+    raw_response = response.text
+    assert "hidden_secret" not in raw_response
+    assert "hidden_user" not in raw_response
+    assert "leak_host" not in raw_response
+    assert "leak_path" not in raw_response
