@@ -936,7 +936,14 @@ function viewAbout() {
     img.onload = () => { const slot = document.getElementById("founder-photo"); if (slot) { img.alt = "Alexander Liu"; img.className = "founder-photo"; slot.replaceWith(img); } };
     img.src = FOUNDER_PHOTO;
   });
-  return `<div class="pagehead"><div><span class="eyebrow">About</span><h1>About VentureScout</h1><p>A free, open-source startup research tool for students and professionals.</p></div></div>
+  return `<section class="hero" aria-labelledby="hero-title">
+    <div class="hero-art"><img src="images/logo-hero.webp" alt="VentureScout logo: a scout with binoculars on a mountain peak beside a rising bar chart" width="560" height="474"></div>
+    <div class="hero-copy">
+      <h1 id="hero-title"><span class="hero-v">Venture</span><span class="hero-s">Scout</span></h1>
+      <p class="hero-tag">Find new startups early, see the evidence behind every funding report, and track the ones you like. Free and open source.</p>
+      <div class="hero-cta"><button type="button" class="btn primary" data-nav="discover">Explore startups</button><button type="button" class="btn" data-nav="map">See the map</button></div>
+    </div>
+  </section>
   <section class="panel prose">
     <h2>What VentureScout does</h2>
     <p>Every day, VentureScout automatically finds new startups in public funding news, Hacker News launches, YouTube videos and SEC Form D filings, and checks how well each funding report is supported: corroborated, single-source, company-announced, a rumour, or a regulatory filing. Rumours and fundraising targets are never counted as money raised.</p>
