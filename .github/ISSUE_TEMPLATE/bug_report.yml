@@ -1,0 +1,84 @@
+name: Bug Report
+description: Report an issue or bug in VentureScout to help us improve.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug!
+        If you have discovered a security vulnerability, please do NOT use this form; refer to our [Security Policy](https://github.com/BagofRamen27/Venture-capital-tracker-/blob/main/SECURITY.md) instead.
+  - type: input
+    id: summary
+    attributes:
+      label: Bug Summary
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of VentureScout is affected?
+      options:
+        - "Discovery Engine (Python backend / API)"
+        - "Web Application (Client-side tracker)"
+        - "GitHub Actions (Automation / Deployment)"
+        - "Documentation / Other"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment & Versions
+      description: Include relevant environment details (e.g., OS, Python version, Node.js version, browser).
+      placeholder: |
+        - OS: Windows 11 / Ubuntu 22.04 / macOS 14
+        - Python version (if discovery engine): 3.11.x
+        - Node.js version (if web): 20.x or 22.x
+        - Browser (if web): Chrome / Firefox / Safari
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Clear, step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Run '...'
+        2. Click on '...'
+        3. See error '...'
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include error messages or unexpected states.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Screenshots
+      description: |
+        Paste relevant log output or terminal traces here.
+        WARNING: Do NOT include API tokens, passwords, private database hostnames, or personal credentials.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I have verified this is a bug and checked for existing duplicate issues.
+          required: true
+        - label: I have removed all sensitive credentials, API keys, and private paths from any shared logs.
+          required: true

@@ -1,0 +1,59 @@
+name: Feature Request
+description: Suggest an idea or enhancement for VentureScout.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve VentureScout!
+        Please describe the problem you want to solve or the enhancement you would like to see.
+  - type: input
+    id: summary
+    attributes:
+      label: Feature Title
+      description: A concise title summarizing the proposal.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or User Need
+      description: What problem are you trying to solve, or what gap does this feature address?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution or how you envision this working.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions, features, or workarounds?
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Project Area
+      description: Which area does this feature primarily relate to?
+      options:
+        - "Startup Discovery & Data Sources"
+        - "Scoring & Confidence Algorithms"
+        - "Web Interface & User Experience"
+        - "Data Export & API"
+        - "Automation & Workflows"
+        - "Other"
+    validations:
+      required: true
+  - type: checkboxes
+    id: architectural_alignment
+    attributes:
+      label: Architectural Alignment
+      options:
+        - label: I understand that VentureScout is a serverless, static-first project that requires no paid APIs or third-party cloud subscriptions.
+          required: true
