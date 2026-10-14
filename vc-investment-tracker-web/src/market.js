@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 /* StartupDB adapter used by the daily data update (scripts/update-market.mjs).
    StartupDB facts are published under CC BY 4.0; attribution and source links are kept. */
 export const API = 'https://startupdb.com/api/v1/startups';
@@ -45,10 +48,16 @@ export async function fetchMarket({ pages = 4, detailLimit = 200, fetchImpl = fe
   };
   const companies = [], details = {}, errors = [];
   let total = null;
+  let paginationError = null;
   for (let page = 0; page < pages; page++) {
     let j;
     try { j = await get(`${API}?limit=50&offset=${page * 50}`); }
-    catch (e) { if (page === 0) throw e; errors.push(e.message); break; }
+    catch (e) {
+      if (page === 0) throw e;
+      paginationError = e.message;
+      errors.push(e.message);
+      break;
+    }
     total = j.pagination?.total ?? total;
     for (const c of j.data || []) { try { companies.push(normalizeCompany(c)); } catch { /* skip malformed rows */ } }
     if ((j.data || []).length < 50) break;
@@ -59,5 +68,119 @@ export async function fetchMarket({ pages = 4, detailLimit = 200, fetchImpl = fe
     catch (e) { errors.push(c.slug + ': ' + e.message); }
     await sleep(pauseMs);
   }
-  return { source: 'StartupDB', license: 'CC BY 4.0', fetchedAt: new Date().toISOString(), stale: false, total, companies, details, errors: errors.slice(0, 20) };
+  return {
+    source: 'StartupDB',
+    license: 'CC BY 4.0',
+    fetchedAt: new Date().toISOString(),
+    stale: false,
+    total,
+    companies,
+    details,
+    errors: errors.slice(0, 20),
+    ...(paginationError ? { paginationError, partial: true } : {}),
+  };
+}
+
+export function validateSnapshot(data) {
+  return Boolean(
+    data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    Array.isArray(data.companies)
+  );
+}
+
+export function readSnapshot(filePath, { fsImpl = fs } = {}) {
+  if (!fsImpl.existsSync(filePath)) {
+    return { exists: false, valid: false, data: null };
+  }
+  try {
+    const raw = fsImpl.readFileSync(filePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (validateSnapshot(parsed)) {
+      return { exists: true, valid: true, data: parsed };
+    }
+    return { exists: true, valid: false, data: null, error: 'Snapshot does not match market schema (missing companies array)' };
+  } catch (err) {
+    return { exists: true, valid: false, data: null, error: err.message };
+  }
+}
+
+export function safeWriteJSON(filePath, data, { fsImpl = fs } = {}) {
+  const tmp = filePath + '.' + process.pid + '.' + Date.now() + '.tmp';
+  const content = JSON.stringify(data);
+  fsImpl.mkdirSync(path.dirname(filePath), { recursive: true });
+  fsImpl.writeFileSync(tmp, content, 'utf8');
+  try {
+    fsImpl.renameSync(tmp, filePath);
+  } finally {
+    try {
+      if (fsImpl.existsSync(tmp)) fsImpl.unlinkSync(tmp);
+    } catch {}
+  }
+}
+
+export async function updateMarketFile({
+  outFile,
+  pages = 4,
+  detailLimit = 200,
+  strict = false,
+  fetchImpl = fetch,
+  pauseMs = 1000,
+  sleep = ms => new Promise(r => setTimeout(r, ms)),
+  now = () => new Date().toISOString(),
+  logger = console,
+  fsImpl = fs,
+} = {}) {
+  if (!outFile) throw new Error('outFile is required');
+  const existing = readSnapshot(outFile, { fsImpl });
+  let data = null;
+  let refreshError = null;
+
+  try {
+    data = await fetchMarket({ pages, detailLimit, fetchImpl, pauseMs, sleep });
+    if (data.paginationError) {
+      refreshError = new Error('Pagination failed on later page: ' + data.paginationError);
+    }
+  } catch (err) {
+    refreshError = err;
+  }
+
+  if (!refreshError) {
+    safeWriteJSON(outFile, data, { fsImpl });
+    logger.log(
+      `StartupDB: saved ${data.companies.length} companies and ${Object.keys(data.details).length} funding histories` +
+      (data.errors.length ? ` (${data.errors.length} skipped)` : '')
+    );
+    return { status: 'success', exitCode: 0, data };
+  }
+
+  const errorMessage = refreshError.message;
+
+  if (existing.exists && !existing.valid) {
+    logger.error(`StartupDB unavailable and existing snapshot is corrupt: ${errorMessage} (Snapshot error: ${existing.error})`);
+    logger.log(`::warning::StartupDB refresh failed and existing snapshot is corrupt: ${errorMessage}`);
+    return { status: 'corrupt_snapshot', exitCode: 1, error: errorMessage };
+  }
+
+  if (existing.exists && existing.valid) {
+    const updated = {
+      ...existing.data,
+      stale: true,
+      lastError: errorMessage,
+      lastAttemptAt: now(),
+    };
+    safeWriteJSON(outFile, updated, { fsImpl });
+    logger.warn(`StartupDB unavailable; kept previous data and marked it stale: ${errorMessage}`);
+    logger.log(`::warning::StartupDB refresh failed (${errorMessage}); retained previous snapshot marked stale`);
+    if (strict) {
+      logger.error(`Strict mode enabled: market refresh failed with exit code 1`);
+      return { status: 'degraded', exitCode: 1, error: errorMessage, data: updated };
+    }
+    return { status: 'degraded', exitCode: 0, error: errorMessage, data: updated };
+  }
+
+  logger.error(`StartupDB unavailable and no previous data exists: ${errorMessage}`);
+  logger.log(`::warning::StartupDB refresh failed and no previous data exists: ${errorMessage}`);
+  return { status: 'missing_snapshot', exitCode: 1, error: errorMessage };
 }
