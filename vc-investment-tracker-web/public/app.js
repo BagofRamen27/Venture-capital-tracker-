@@ -944,6 +944,7 @@ function viewAbout() {
       <p class="eyebrow">Founder</p>
       <p>I'm a Master's in Finance student at Babson College. I built VentureScout so that students and professionals can research startups with a free tracker, instead of paying for an expensive subscription.</p>
       <p>VentureScout is <b>free and open source</b>: anyone can use it, read the code, or contribute on <a href="https://github.com/BagofRamen27/Venture-capital-tracker-" target="_blank" rel="noopener">GitHub</a>.</p>
+      <p><a href="https://www.linkedin.com/in/alexliu" target="_blank" rel="noopener noreferrer">LinkedIn profile</a></p>
     </div>
   </section>
   <section class="panel founder">
