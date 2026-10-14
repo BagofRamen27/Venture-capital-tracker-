@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import re
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -163,8 +164,79 @@ def startup_detail(session: Session, s: Startup) -> dict:
     }
 
 
+_RE_HTTP_STATUS = re.compile(
+    r"(?:"
+    r"HTTP(?:StatusError)?[:\s]+(?P<code>[45]\d{2})\b"
+    r"|status(?:\s+code)?[:\s]+(?P<code2>[45]\d{2})\b"
+    r"|['\"]?(?P<code3>[45]\d{2})\s+(?:[A-Za-z ]+)?(?:Error|Server Error|Client Error|Bad Gateway|Gateway Timeout|Service Unavailable|Not Found|Unauthorized|Forbidden|Too Many Requests)['\"]?"
+    r")",
+    re.IGNORECASE,
+)
+_RE_ITEMS_FAILED = re.compile(r"^(\d+)\s+item\(s\)\s+failed\b", re.IGNORECASE)
+
+
+def sanitize_job_error(error: str | None) -> str | None:
+    """Sanitize job error messages for safe public consumption.
+
+    Strips URLs, tokens, credentials, internal hostnames/IPs, filesystem paths,
+    and raw exception arguments. Preserves only coarse, safe operational
+    indicators (e.g. HTTP status codes, item-failure counts, generic categories).
+    Fails closed to 'Job execution failed' for unknown or malformed error strings.
+    """
+    if error is None:
+        return None
+    raw = str(error).strip()
+    if not raw:
+        return None
+
+    err_lower = raw.lower()
+
+    # 1. Concurrency / lock messages
+    if "already running" in err_lower or "lock held" in err_lower:
+        return "Already running (lock held)"
+
+    # 2. HTTP status code indicators in reliable context
+    m_http = _RE_HTTP_STATUS.search(raw)
+    if m_http:
+        code = m_http.group("code") or m_http.group("code2") or m_http.group("code3")
+        if code == "429":
+            return "Rate limit exceeded (HTTP 429)"
+        return f"HTTP {code}"
+
+    # 3. Batch item ingestion failure count
+    m_items = _RE_ITEMS_FAILED.match(raw)
+    if m_items:
+        return f"{m_items.group(1)} item(s) failed during ingestion"
+
+    # 4. Timeout errors
+    if any(k in err_lower for k in ("timeout", "timed out", "connecttimeout", "readtimeout", "pooltimeout")):
+        return "Request timeout"
+
+    # 5. Network connectivity errors
+    if any(k in err_lower for k in ("connecterror", "connection refused", "remotedisconnected", "connectionreset",
+                                   "network is unreachable", "name or service not known",
+                                   "nodename nor servname provided", "temporary failure in name resolution")):
+        return "Connection failed"
+
+    # 6. Rate limit errors without status code
+    if "rate limit" in err_lower or "too many requests" in err_lower:
+        return "Rate limit exceeded"
+
+    # 7. Database operational errors
+    if any(k in err_lower for k in ("operationalerror", "databaseerror", "integrityerror",
+                                   "interfaceerror", "programmingerror")):
+        return "Database error"
+
+    # 8. Data parsing / decoding errors
+    if any(k in err_lower for k in ("jsondecodeerror", "parseerror", "unicodedecodeerror", "syntaxerror")):
+        return "Data format error"
+
+    # 9. Safe fail-closed fallback
+    return "Job execution failed"
+
+
 def job_dict(j: JobRun) -> dict:
     return {"id": j.id, "job": j.job_name, "source_key": j.source_key, "trigger": j.trigger, "status": j.status,
             "started_at": iso(j.started_at), "finished_at": iso(j.finished_at), "items_fetched": j.items_fetched,
             "items_new": j.items_new, "items_duplicate": j.items_duplicate, "startups_created": j.startups_created,
-            "error": j.error_message}
+            "error": sanitize_job_error(j.error_message)}
