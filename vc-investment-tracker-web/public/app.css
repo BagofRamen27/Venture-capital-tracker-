@@ -525,3 +525,33 @@ label.btn:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; 
 @keyframes about-drift { 50% { transform: translateY(-14px) scale(1.02); } }
 @media (max-width: 720px) { .about { padding: 32px 16px 24px; gap: 32px; border-radius: 12px; } .about-tag { font-size: 17px; } }
 @media (prefers-reduced-motion: reduce) { .about *, .about::before { animation: none !important; transition: none !important; } }
+
+/* Competitive analysis */
+.ca-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ca-sec { display: flex; flex-direction: column; gap: 12px; }
+.ca-sec h2 { font-size: 20px; }
+.ca-sec h3 { font-size: 16px; margin-top: 8px; }
+.ca-sec label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.ca-sec input:not([type=checkbox]), .ca-sec select, .ca-sec textarea { font: inherit; font-weight: 400; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; width: 100%; box-sizing: border-box; }
+.ca-sec textarea { resize: vertical; }
+.ca-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.ca-comp { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.ca-comp > .btn { align-self: flex-start; }
+.ca-sec > .btn { align-self: flex-start; }
+.ca-forces { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.ca-forces label select { margin-bottom: 4px; }
+.ca-table td, .ca-factors td { min-width: 140px; vertical-align: top; }
+.ca-factors td:nth-child(2), .ca-factors td:nth-child(6) { min-width: 0; text-align: center; }
+.ca-factors td:nth-child(3) { min-width: 100px; }
+.ca-factors td:nth-child(4) { min-width: 240px; }
+.ca-scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.ca-score { border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: var(--surface-2, var(--bg)); }
+.ca-num { font-family: var(--f-display); font-size: 44px; font-weight: 600; margin: 4px 0 8px; line-height: 1; }
+.ca-num small { font-size: 18px; color: var(--muted); }
+.ca-num span { font-size: 22px; color: var(--muted); }
+.ca-cov { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.ca-cov span { display: block; height: 100%; background: var(--accent); }
+.ca-score .note { margin: 8px 0 0; }
+.ca-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.ca-list h2 { font-size: 18px; }
+.ca-factors select { min-width: 104px; }

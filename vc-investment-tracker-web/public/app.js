@@ -226,7 +226,7 @@ let route = { view: "about", id: null };
 function parseHash() {
   const h = (location.hash || "").slice(1);
   if (Object.hasOwn(BYID,h)) return { view: "profile", id: h };
-  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "map", "contributors", "about"].includes(h)) return { view: h };
+  if (["dashboard", "directory", "scorecard", "pipeline", "financials", "changes", "discover", "tracking", "status", "map", "compete", "contributors", "about"].includes(h)) return { view: h };
   return { view: "about" };
 }
 function go(view, id) {
@@ -266,7 +266,7 @@ function render() {
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.nav === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const pageName = $("#tabs [aria-current='page']")?.textContent || "Local edits";
   $("#nav-toggle").textContent = "Menu · " + pageName;
-  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, map: mapUI.view, contributors: viewContributors, about: viewAbout }[route.view];
+  const v = { dashboard: marketUI.dashboard, directory: viewDirectory, profile: viewProfile, scorecard: viewScorecard, pipeline: viewPipeline, financials: marketUI.financials, changes: viewChanges, discover: viewDiscover, tracking: viewTracking, status: viewStatus, map: mapUI.view, compete: competeUI.view, contributors: viewContributors, about: viewAbout }[route.view];
   $("#app").innerHTML = v(route.id);
   $("#app").querySelectorAll(".tw, .kanban").forEach(region => {
     region.tabIndex = 0;
@@ -835,6 +835,10 @@ const DISC = { data:null,status:null,error:'',statusError:'',loading:false,loade
 const account = window.ventureAccount || {companies:[],error:''};
 const options = (items,current,labels={}) => items.map(x=>`<option value="${esc(x)}" ${x===current?'selected':''}>${esc(labels[x]||x)}</option>`).join('');
 const marketUI=window.createMarketUI({esc,render:()=>render(),count:()=>account.companies.length,track:c=>startTracking(c)});
+// Startups the competitive analysis can prefill from: the user's saved list and discovered companies.
+const competeUI=window.createCompeteUI({esc,render:()=>render(),isActive:()=>route.view==='compete',
+  startups:()=>{if(!DISC.loaded)loadDiscoveryData();return [...account.companies.map(c=>({name:c.name,website:c.website,industry:c.industry,stage:c.stage})),
+    ...(DISC.data?.companies||[]).map(c=>({name:c.name||'',website:c.website||'',industry:c.industry||'',stage:c.funding_stage||''}))].filter(c=>c.name);}});
 const mapUI=window.createMapUI({esc,render:()=>render(),isActive:()=>route.view==='map',
   openDiscovered:id=>{DISC.selected=id;go('discover');},
   openMarket:p=>{if(p?.detail)marketUI.openFinancials(p.id);else if(p?.url)window.open(p.url,'_blank','noopener');}});
@@ -1058,7 +1062,7 @@ function viewTracking() {
   ${account.error?`<div class="panel" role="alert">${esc(account.error)}</div>`:''}
   ${SCOUT.saveError&&!SCOUT.form?`<p class="panel" role="alert">${esc(SCOUT.saveError)}</p>`:''}
   ${SCOUT.form?companyForm(SCOUT.form):''}
-  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button><button class="btn" id="backup-export" ${account.companies.length?'':'disabled'}>Back up (download)</button><label class="btn">Restore backup<input type="file" id="backup-import" accept="application/json,.json" class="visually-hidden"></label></div>
+  <div class="controls"><label>Funding stage <select id="tracked-stage"><option value="">All stages</option>${options(STAGES,SCOUT.stageFilter)}</select></label><span>${rows.length} saved ${rows.length===1?'company':'companies'}</span><button class="btn" data-nav="discover">Discover more</button><button class="btn" id="backup-export" ${account.companies.length||competeUI.all().length?'':'disabled'}>Back up (download)</button><label class="btn">Restore backup<input type="file" id="backup-import" accept="application/json,.json" class="visually-hidden"></label></div>
   ${SCOUT.importMsg?`<p class="note" role="status">${esc(SCOUT.importMsg)}</p>`:''}
   <div class="scout-grid">${rows.map(c=>`<article class="panel scout-card"><span class="eyebrow">${esc(c.industry)} · ${esc(c.stage)}</span><h2><button class="link" data-go="${esc(c.id)}">${esc(c.name)}</button></h2><p>${esc(c.location||'Location not supplied')}</p>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p class="muted">${esc(c.source)} · Added ${esc(new Date(c.createdAt).toLocaleDateString())}</p><div class="row"><a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">Website</a><button class="btn" data-edit-company="${esc(c.id)}">Edit details</button><button class="btn" data-go="${esc(c.id)}">Research & score</button><button class="btn" data-remove-company="${esc(c.id)}">Remove</button></div></article>`).join('')||'<section class="panel empty">No saved startups yet. Add a company or track one from Discover.</section>'}</div>
   <p class="note">Saved companies, scores and pipeline edits stay in this browser and do not sync between devices or people. Clearing browser data removes them; back up first.</p>`;
@@ -1081,7 +1085,7 @@ document.addEventListener('submit',e=>{
 document.addEventListener('change',e=>{
   if(e.target.id==='tracked-stage'){SCOUT.stageFilter=e.target.value;render();}
   if(e.target.closest?.('#disc-filters')){const f=Object.fromEntries(new FormData(e.target.closest('#disc-filters')));Object.assign(DISC.f,f);DISC.limit=60;render();}
-  if(e.target.id==='backup-import'&&e.target.files[0]){e.target.files[0].text().then(t=>{const r=VS.importBackup(account.companies,JSON.parse(t));persist(r.list);SCOUT.importMsg=`Restored ${r.added} compan${r.added===1?'y':'ies'}${r.skipped?`, skipped ${r.skipped} (already saved or invalid)`:''}. Reloading…`;render();setTimeout(()=>location.reload(),900);}).catch(err=>{SCOUT.importMsg='Could not restore: '+(err.message||'invalid file');render();});}
+  if(e.target.id==='backup-import'&&e.target.files[0]){e.target.files[0].text().then(t=>{const data=JSON.parse(t),hasAnalyses=Array.isArray(data?.analyses),r=hasAnalyses&&!Array.isArray(data.companies)?{list:account.companies,added:0,skipped:0}:VS.importBackup(account.companies,data);persist(r.list);const n=hasAnalyses?competeUI.restore(data.analyses):0;SCOUT.importMsg=`Restored ${r.added} compan${r.added===1?'y':'ies'}${r.skipped?`, skipped ${r.skipped} (already saved or invalid)`:''}${n?` and ${n} competitive analys${n===1?'is':'es'}`:''}. Reloading…`;render();setTimeout(()=>location.reload(),900);}).catch(err=>{SCOUT.importMsg='Could not restore: '+(err.message||'invalid file');render();});}
 });
 document.addEventListener('input',e=>{if(e.target.name==='q'&&e.target.closest('#disc-filters')){DISC.f.q=e.target.value;DISC.limit=60;clearTimeout(DISC.t);DISC.t=setTimeout(()=>{const pos=e.target.selectionStart;render();const i=document.querySelector('#disc-filters input[name=q]');if(i){i.focus();i.setSelectionRange(pos,pos);}},250);}});
 document.addEventListener('click',e=>{
@@ -1090,7 +1094,7 @@ document.addEventListener('click',e=>{
   if(t.id==='cancel-company'){SCOUT.form=null;SCOUT.saveError='';render();}
   if(t.dataset.editCompany){SCOUT.form=account.companies.find(c=>c.id===t.dataset.editCompany);SCOUT.saveError='';render();scrollTo(0,0);}
   if(t.dataset.removeCompany){const c=account.companies.find(x=>x.id===t.dataset.removeCompany);if(c&&confirm('Remove '+c.name+' from your list?')){persist(VS.removeCompany(account.companies,c.id));location.hash='tracking';location.reload();}}
-  if(t.id==='backup-export'){const blob=new Blob([JSON.stringify({app:'VentureScout',exportedAt:new Date().toISOString(),companies:account.companies},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='venturescout-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);}
+  if(t.id==='backup-export'){const blob=new Blob([JSON.stringify({app:'VentureScout',exportedAt:new Date().toISOString(),companies:account.companies,analyses:competeUI.all()},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='venturescout-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);}
   if(t.dataset.disc){DISC.selected=Number(t.dataset.disc);render();document.getElementById('disc-profile')?.scrollIntoView();}
   if(t.id==='disc-close'){DISC.selected=null;render();}
   if(t.dataset.scroll){const el=document.getElementById(t.dataset.scroll);el?.scrollIntoView({behavior:'smooth'});el?.querySelector('input')?.focus({preventScroll:true});}
