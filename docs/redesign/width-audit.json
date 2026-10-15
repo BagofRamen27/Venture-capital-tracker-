@@ -1,0 +1,122 @@
+[
+  {
+    "width": 320,
+    "page": "dashboard",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "discover",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "directory",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "map",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "compete",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "financials",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "tracking",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "scorecard",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "pipeline",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "status",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "contributors",
+    "overflow": false
+  },
+  {
+    "width": 320,
+    "page": "about",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "dashboard",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "discover",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "directory",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "map",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "compete",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "financials",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "tracking",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "scorecard",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "pipeline",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "status",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "contributors",
+    "overflow": false
+  },
+  {
+    "width": 1280,
+    "page": "about",
+    "overflow": false
+  }
+]

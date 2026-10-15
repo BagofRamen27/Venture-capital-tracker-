@@ -1,0 +1,122 @@
+[
+  {
+    "theme": "light",
+    "page": "dashboard",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "discover",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "directory",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "map",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "compete",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "financials",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "tracking",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "scorecard",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "pipeline",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "status",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "contributors",
+    "failures": []
+  },
+  {
+    "theme": "light",
+    "page": "about",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "dashboard",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "discover",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "directory",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "map",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "compete",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "financials",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "tracking",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "scorecard",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "pipeline",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "status",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "contributors",
+    "failures": []
+  },
+  {
+    "theme": "dark",
+    "page": "about",
+    "failures": []
+  }
+]
