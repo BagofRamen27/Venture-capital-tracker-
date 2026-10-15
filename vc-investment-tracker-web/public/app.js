@@ -942,11 +942,13 @@ function viewAbout() {
   });
   return `<div class="about">
   <section class="about-hero" aria-labelledby="hero-title">
-    <img class="about-hero-logo" src="images/logo-hero.webp" alt="VentureScout logo: a scout with binoculars on a mountain peak beside a rising bar chart" width="560" height="474">
+    <div class="about-hero-art"><img class="about-hero-logo" src="images/logo-hero.webp" alt="VentureScout logo: a scout with binoculars on a mountain peak beside a rising bar chart" width="560" height="474"></div>
+    <div class="about-hero-copy">
     <p class="about-kicker">Free &middot; Open source &middot; Updated every day</p>
     <h1 id="hero-title"><span class="hero-v">Venture</span><span class="hero-s">Scout</span></h1>
     <p class="about-tag">Find new startups early, see the evidence behind every funding report, and track the ones you like.</p>
     <div class="about-cta"><button type="button" class="btn primary" data-nav="discover">Explore startups</button><button type="button" class="btn" data-nav="map">See the map</button></div>
+    </div>
   </section>
 
   <section aria-labelledby="about-what">
