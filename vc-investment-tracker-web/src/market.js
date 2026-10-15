@@ -51,7 +51,12 @@ export async function fetchMarket({ pages = 4, detailLimit = 200, fetchImpl = fe
   let paginationError = null;
   for (let page = 0; page < pages; page++) {
     let j;
-    try { j = await get(`${API}?limit=50&offset=${page * 50}`); }
+    try {
+      j = await get(`${API}?limit=50&offset=${page * 50}`);
+      if (!Array.isArray(j?.data)) {
+        throw Error('StartupDB returned invalid listing payload: missing data array');
+      }
+    }
     catch (e) {
       if (page === 0) throw e;
       paginationError = e.message;
@@ -59,8 +64,8 @@ export async function fetchMarket({ pages = 4, detailLimit = 200, fetchImpl = fe
       break;
     }
     total = j.pagination?.total ?? total;
-    for (const c of j.data || []) { try { companies.push(normalizeCompany(c)); } catch { /* skip malformed rows */ } }
-    if ((j.data || []).length < 50) break;
+    for (const c of j.data) { try { companies.push(normalizeCompany(c)); } catch { /* skip malformed rows */ } }
+    if (j.data.length < 50) break;
     await sleep(pauseMs);
   }
   for (const c of companies.slice(0, detailLimit)) {

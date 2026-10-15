@@ -397,3 +397,154 @@ test('scripts/update-market.mjs CLI execution handles --out, --strict, and exit 
     assert.equal(r3.status, 1);
   });
 });
+
+test('listing response schema validation rejects unexpected payloads, null, and non-array data', async () => {
+  const invalidPayloads = [
+    { error: 'throttled' },
+    {},
+    { data: null },
+    { data: 'invalid' },
+    { data: { not: 'an array' } },
+  ];
+
+  for (const payload of invalidPayloads) {
+    const fetchImpl = async () => Response.json(payload);
+    await assert.rejects(
+      fetchMarket({ fetchImpl, sleep: async () => {} }),
+      /StartupDB returned invalid listing payload: missing data array/
+    );
+  }
+
+  // Valid empty array should be accepted without throwing
+  const validFetch = async () => Response.json({ data: [], pagination: { total: 0 } });
+  const res = await fetchMarket({ fetchImpl: validFetch, sleep: async () => {} });
+  assert.equal(res.companies.length, 0);
+  assert.equal(res.stale, false);
+});
+
+test('first-page listing schema failure preserves existing snapshot and marks it stale', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    const initialData = {
+      source: 'StartupDB',
+      stale: false,
+      companies: Array.from({ length: 100 }, (_, i) => company(i)),
+      details: {},
+    };
+    fs.writeFileSync(outFile, JSON.stringify(initialData));
+
+    const fetchImpl = async () => Response.json({ error: 'throttled' });
+    const logger = makeLogger();
+    const res = await updateMarketFile({ outFile, fetchImpl, sleep: async () => {}, logger });
+
+    assert.equal(res.status, 'degraded');
+    assert.equal(res.exitCode, 0);
+    assert.ok(res.error.includes('StartupDB returned invalid listing payload: missing data array'));
+
+    const preserved = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+    assert.equal(preserved.companies.length, 100);
+    assert.equal(preserved.stale, true);
+    assert.ok(preserved.lastError.includes('missing data array'));
+    assert.ok(logger.warns.some(w => w.includes('StartupDB unavailable; kept previous data and marked it stale')));
+  });
+});
+
+test('later-page listing schema failure does not overwrite complete snapshot with partial data', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    const initialData = {
+      source: 'StartupDB',
+      stale: false,
+      companies: Array.from({ length: 100 }, (_, i) => company(i)),
+      details: {},
+    };
+    fs.writeFileSync(outFile, JSON.stringify(initialData));
+
+    // Page 0 returns 50 companies; Page 1 returns {"error": "throttled"}
+    const fetchImpl = async (url) => {
+      const offset = Number(new URL(url).searchParams.get('offset'));
+      if (offset === 0) {
+        return Response.json({
+          data: Array.from({ length: 50 }, (_, i) => company(i + 500)),
+          pagination: { total: 200 }
+        });
+      }
+      return Response.json({ error: 'throttled' });
+    };
+
+    const logger = makeLogger();
+    const res = await updateMarketFile({ outFile, pages: 3, fetchImpl, sleep: async () => {}, logger });
+
+    assert.equal(res.status, 'degraded');
+    assert.equal(res.exitCode, 0);
+    assert.ok(res.error.includes('Pagination failed on later page'));
+    assert.ok(res.error.includes('missing data array'));
+
+    const preserved = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+    assert.equal(preserved.companies.length, 100); // All 100 original companies preserved, NOT truncated to 50
+    assert.equal(preserved.stale, true);
+    assert.ok(preserved.lastError.includes('Pagination failed on later page'));
+    assert.ok(preserved.lastError.includes('missing data array'));
+  });
+});
+
+test('listing schema failure with no prior snapshot fails explicitly with exit code 1', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+
+    // Case A: First page returns unexpected payload
+    const fetchImplFirstPage = async () => Response.json({ error: 'throttled' });
+    const loggerA = makeLogger();
+    const resA = await updateMarketFile({ outFile, fetchImpl: fetchImplFirstPage, sleep: async () => {}, logger: loggerA });
+    assert.equal(resA.status, 'missing_snapshot');
+    assert.equal(resA.exitCode, 1);
+    assert.equal(fs.existsSync(outFile), false);
+
+    // Case B: Later page returns unexpected payload
+    const fetchImplLaterPage = async (url) => {
+      const offset = Number(new URL(url).searchParams.get('offset'));
+      if (offset === 0) {
+        return Response.json({
+          data: Array.from({ length: 50 }, (_, i) => company(i)),
+          pagination: { total: 100 }
+        });
+      }
+      return Response.json({ error: 'throttled' });
+    };
+    const loggerB = makeLogger();
+    const resB = await updateMarketFile({ outFile, pages: 3, fetchImpl: fetchImplLaterPage, sleep: async () => {}, logger: loggerB });
+    assert.equal(resB.status, 'missing_snapshot');
+    assert.equal(resB.exitCode, 1);
+    assert.equal(fs.existsSync(outFile), false);
+  });
+});
+
+test('listing schema failure returns exit code 1 when strict mode is enabled', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    fs.writeFileSync(outFile, JSON.stringify({
+      source: 'StartupDB',
+      stale: false,
+      companies: [company(1)],
+      details: {}
+    }));
+
+    const fetchImpl = async () => Response.json({ error: 'throttled' });
+    const logger = makeLogger();
+    const res = await updateMarketFile({
+      outFile,
+      strict: true,
+      fetchImpl,
+      sleep: async () => {},
+      logger
+    });
+
+    assert.equal(res.status, 'degraded');
+    assert.equal(res.exitCode, 1);
+
+    const preserved = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+    assert.equal(preserved.companies.length, 1);
+    assert.equal(preserved.stale, true);
+    assert.ok(logger.errors.some(e => e.includes('Strict mode enabled')));
+  });
+});
