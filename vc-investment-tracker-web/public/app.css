@@ -557,4 +557,3 @@ label.btn:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; 
 .ca-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: var(--space-4); }
 .ca-list h2 { font-size: var(--text-base); }
 .ca-factors select { min-width: 104px; }
-

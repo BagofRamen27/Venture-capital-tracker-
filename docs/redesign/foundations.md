@@ -30,4 +30,3 @@ Contact sheets include every section at phone and desktop sizes, plus Dashboard 
 - Complete accessibility, populated workspace flows, 320/1280px and final identity validation are recorded with PR 2. This pass intentionally retains existing colors, including existing contrast limitations.
 
 Preview locally: `cd vc-investment-tracker-web`, then `node scripts/dev.mjs` (port 3010). Run checks with `node --test`, `node --check public/app.js`, and `node scripts/build.mjs`. GitHub Pages will not change until the PRs are merged by a maintainer.
-
