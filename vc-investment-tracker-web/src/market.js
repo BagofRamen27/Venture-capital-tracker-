@@ -49,6 +49,7 @@ export async function fetchMarket({ pages = 4, detailLimit = 200, fetchImpl = fe
   const companies = [], details = {}, errors = [];
   let total = null;
   let paginationError = null;
+  let malformedCount = 0;
   for (let page = 0; page < pages; page++) {
     let j;
     try {
@@ -64,7 +65,25 @@ export async function fetchMarket({ pages = 4, detailLimit = 200, fetchImpl = fe
       break;
     }
     total = j.pagination?.total ?? total;
-    for (const c of j.data) { try { companies.push(normalizeCompany(c)); } catch { /* skip malformed rows */ } }
+    const pageCompaniesStart = companies.length;
+    for (const c of j.data) {
+      try {
+        companies.push(normalizeCompany(c));
+      } catch (err) {
+        malformedCount++;
+        if (errors.length < 20) {
+          const ident = text(c?.slug || c?.name || `#${malformedCount}`, 40);
+          errors.push(`malformed row (${ident}): ${err.message}`);
+        }
+      }
+    }
+    if (j.data.length > 0 && companies.length === pageCompaniesStart) {
+      const err = new Error(`StartupDB listing rows failed normalization on page ${page + 1}: 0 of ${j.data.length} rows valid`);
+      if (page === 0) throw err;
+      paginationError = err.message;
+      errors.push(err.message);
+      break;
+    }
     if (j.data.length < 50) break;
     await sleep(pauseMs);
   }
