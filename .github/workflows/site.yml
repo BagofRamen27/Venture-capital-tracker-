@@ -26,12 +26,6 @@ on:
   issues:                   # Hall of contributors: republish when a "Join the hall" request is approved or changes
     types: [labeled, unlabeled, edited, closed, reopened, deleted]
 
-permissions:
-  contents: write   # save the database to the discovery-data branch
-  pages: write
-  id-token: write
-  issues: write     # read "Join the hall" requests and create the hall-approved label
-
 concurrency:
   group: site
   cancel-in-progress: false
@@ -40,6 +34,9 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
+      issues: write
     # Issue events only matter for approved Hall of contributors requests.
     if: github.event_name != 'issues' || github.event.label.name == 'hall-approved' || contains(github.event.issue.labels.*.name, 'hall-approved')
     env:
@@ -154,6 +151,9 @@ jobs:
   deploy:
     needs: update
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
