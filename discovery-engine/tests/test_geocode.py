@@ -65,7 +65,7 @@ def test_cities_are_placed_and_states_or_unknown_places_are_not(settings, tmp_pa
                                           "country": "United States"}}
     assert out["market"] == {"nova": {"lat": 48.8535, "lon": 2.3484, "place": "Paris, France", "country": "France"}}
     assert sorted(calls) == ["atlantis", "california", "paris", "san francisco, ca, usa"]
-    assert json.loads((tmp_path / "places.json").read_text())["attribution"].startswith("Locations © OpenStreetMap")
+    assert json.loads((tmp_path / "places.json").read_text(encoding="utf-8"))["attribution"].startswith("Locations © OpenStreetMap")
 
 
 def test_lookups_are_cached_capped_and_retried_after_90_days(settings, tmp_path):
