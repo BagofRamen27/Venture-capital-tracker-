@@ -52,7 +52,10 @@ test('daily fetch pages through StartupDB, collects details and skips failures',
   assert.equal(r.companies.length, 51); // malformed row skipped, stopped after a short page
   assert.equal(calls.filter(u => u.startsWith(API + '?')).length, 2);
   assert.deepEqual(Object.keys(r.details), ['co-0', 'co-2']);
-  assert.equal(r.errors.length, 1); assert.equal(r.total, 51); assert.equal(r.license, 'CC BY 4.0');
+  assert.equal(r.errors.length, 2); // 1 malformed listing row + 1 failed detail fetch
+  assert.ok(r.errors.some(e => e.includes('no slug')));
+  assert.ok(r.errors.some(e => e.includes('co-1')));
+  assert.equal(r.total, 51); assert.equal(r.license, 'CC BY 4.0');
 });
 
 test('daily fetch fails loudly when the first page is unavailable (no sample data)', async () => {
@@ -546,5 +549,144 @@ test('listing schema failure returns exit code 1 when strict mode is enabled', a
     assert.equal(preserved.companies.length, 1);
     assert.equal(preserved.stale, true);
     assert.ok(logger.errors.some(e => e.includes('Strict mode enabled')));
+  });
+});
+
+test('mixed valid and malformed listing rows retain valid companies and record bounded diagnostics', async () => {
+  const fetchImpl = async () => Response.json({
+    data: [
+      company(1),
+      { name: 'missing slug' },
+      null,
+      company(2),
+      { slug: 'missing name' },
+    ],
+    pagination: { total: 5 }
+  });
+  const res = await fetchMarket({ pages: 1, detailLimit: 0, fetchImpl, sleep: async () => {} });
+  assert.equal(res.companies.length, 2);
+  assert.equal(res.companies[0].slug, 'co-1');
+  assert.equal(res.companies[1].slug, 'co-2');
+  assert.equal(res.stale, false);
+  assert.equal(res.errors.length, 3);
+  assert.ok(res.errors.some(e => e.includes('missing slug')));
+  assert.ok(res.errors.some(e => e.includes('missing name')));
+});
+
+test('first-page where all rows fail normalization preserves existing snapshot and marks it stale', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    const initialData = {
+      source: 'StartupDB',
+      stale: false,
+      companies: Array.from({ length: 100 }, (_, i) => company(i)),
+      details: {},
+    };
+    fs.writeFileSync(outFile, JSON.stringify(initialData));
+
+    // Return 50 rows where all rows fail normalization
+    const fetchImpl = async () => Response.json({
+      data: Array.from({ length: 50 }, () => ({ invalid: 'schema drift' })),
+      pagination: { total: 50 }
+    });
+    const logger = makeLogger();
+    const res = await updateMarketFile({ outFile, fetchImpl, sleep: async () => {}, logger });
+
+    assert.equal(res.status, 'degraded');
+    assert.equal(res.exitCode, 0);
+    assert.ok(res.error.includes('0 of 50 rows valid'));
+
+    const preserved = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+    assert.equal(preserved.companies.length, 100);
+    assert.equal(preserved.stale, true);
+    assert.ok(preserved.lastError.includes('failed normalization on page 1'));
+    assert.ok(logger.warns.some(w => w.includes('kept previous data and marked it stale')));
+  });
+});
+
+test('first-page where all rows fail normalization with no prior snapshot fails with exit code 1', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    const fetchImpl = async () => Response.json({
+      data: [{ invalid: 'row' }, { bad: 'record' }]
+    });
+    const logger = makeLogger();
+    const res = await updateMarketFile({ outFile, fetchImpl, sleep: async () => {}, logger });
+
+    assert.equal(res.status, 'missing_snapshot');
+    assert.equal(res.exitCode, 1);
+    assert.ok(res.error.includes('0 of 2 rows valid'));
+    assert.equal(fs.existsSync(outFile), false);
+  });
+});
+
+test('first-page where all rows fail normalization fails with exit code 1 in strict mode', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    fs.writeFileSync(outFile, JSON.stringify({
+      source: 'StartupDB',
+      stale: false,
+      companies: [company(1)],
+      details: {}
+    }));
+
+    const fetchImpl = async () => Response.json({
+      data: [{ invalid: 'row' }]
+    });
+    const logger = makeLogger();
+    const res = await updateMarketFile({
+      outFile,
+      strict: true,
+      fetchImpl,
+      sleep: async () => {},
+      logger
+    });
+
+    assert.equal(res.status, 'degraded');
+    assert.equal(res.exitCode, 1);
+
+    const preserved = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+    assert.equal(preserved.companies.length, 1);
+    assert.equal(preserved.stale, true);
+    assert.ok(logger.errors.some(e => e.includes('Strict mode enabled')));
+  });
+});
+
+test('later-page where all rows fail normalization halts pagination and preserves complete prior snapshot', async () => {
+  await withTempDir(async (dir) => {
+    const outFile = path.join(dir, 'market.json');
+    fs.writeFileSync(outFile, JSON.stringify({
+      source: 'StartupDB',
+      stale: false,
+      companies: Array.from({ length: 100 }, (_, i) => company(i)),
+      details: {}
+    }));
+
+    // Page 0 returns 50 valid companies; Page 1 returns 50 malformed companies
+    const fetchImpl = async (url) => {
+      const offset = Number(new URL(url).searchParams.get('offset'));
+      if (offset === 0) {
+        return Response.json({
+          data: Array.from({ length: 50 }, (_, i) => company(i + 500)),
+          pagination: { total: 200 }
+        });
+      }
+      return Response.json({
+        data: Array.from({ length: 50 }, () => ({ malformed: 'row' }))
+      });
+    };
+
+    const logger = makeLogger();
+    const res = await updateMarketFile({ outFile, pages: 3, fetchImpl, sleep: async () => {}, logger });
+
+    assert.equal(res.status, 'degraded');
+    assert.equal(res.exitCode, 0);
+    assert.ok(res.error.includes('Pagination failed on later page'));
+    assert.ok(res.error.includes('failed normalization on page 2'));
+
+    const preserved = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+    assert.equal(preserved.companies.length, 100);
+    assert.equal(preserved.stale, true);
+    assert.ok(preserved.lastError.includes('failed normalization on page 2'));
   });
 });
