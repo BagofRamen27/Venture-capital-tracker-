@@ -3,7 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import func, select
 
 from tests.conftest import fixture_text, make_client
-from tests.test_sources import sec_routes
+from tests.test_sources import FUND_DIR, sec_routes
 from vcdiscovery import db
 from vcdiscovery.funding import record_round
 from vcdiscovery.models import (
@@ -266,6 +266,17 @@ def test_sec_creates_startup_for_unknown_candidate(settings):
         assert acme.name == "Acme Robotics, Inc." and acme.review_status == "Needs Verification"
         assert acme.hq_city == "Austin" and acme.industry == "Technology"
         assert s.scalar(select(SecFiling).where(SecFiling.startup_id == acme.id)).match_status == "created"
+
+
+def test_sec_pipeline_run_tolerates_malformed_filing(settings):
+    routes = {**sec_routes(), FUND_DIR + "primary_doc.xml": "<html><body>503 Service Unavailable</body></html>"}
+    result = run_discovery(
+        settings,
+        sources=[SecFormDSource(lookback_days=1, today=lambda: date(2026, 10, 8))],
+        client=make_client(routes),
+    )
+    assert result["results"][0]["status"] == "success"
+    assert result["results"][0]["fetched"] == 2
 
 
 def test_one_failing_source_does_not_stop_others(settings):

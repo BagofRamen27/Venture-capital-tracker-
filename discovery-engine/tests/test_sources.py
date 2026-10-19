@@ -125,6 +125,48 @@ def test_sec_403_on_every_index_means_access_refused():
         src.fetch(make_client({"https://www.sec.gov/Archives/edgar/daily-index/": 403}))
 
 
+def test_sec_source_fetch_skips_malformed_xml_and_preserves_valid(caplog):
+    routes = {**sec_routes(), FUND_DIR + "primary_doc.xml": "<edgarSubmission><primaryIssuer><broken"}
+    src = SecFormDSource(lookback_days=3, today=lambda: date(2026, 10, 8))
+    with caplog.at_level("WARNING"):
+        items = src.fetch(make_client(routes))
+    assert {i.accession_number for i in items} == {"0001999001-26-000001", "0001999003-26-000002"}
+    assert "0001999002-26-000001" in caplog.text
+    assert "<broken" not in caplog.text
+
+
+def test_sec_source_fetch_skips_html_error_page(caplog):
+    routes = {
+        **sec_routes(),
+        FUND_DIR + "primary_doc.xml": "<!DOCTYPE html><html><body>503 Service Unavailable</body></html>",
+    }
+    src = SecFormDSource(lookback_days=3, today=lambda: date(2026, 10, 8))
+    with caplog.at_level("WARNING"):
+        items = src.fetch(make_client(routes))
+    assert {i.accession_number for i in items} == {"0001999001-26-000001", "0001999003-26-000002"}
+    assert "0001999002-26-000001" in caplog.text
+    assert "503 Service Unavailable" not in caplog.text
+
+
+def test_sec_source_fetch_skips_empty_or_truncated_xml():
+    routes_empty = {**sec_routes(), FUND_DIR + "primary_doc.xml": ""}
+    src = SecFormDSource(lookback_days=3, today=lambda: date(2026, 10, 8))
+    items = src.fetch(make_client(routes_empty))
+    assert {i.accession_number for i in items} == {"0001999001-26-000001", "0001999003-26-000002"}
+
+
+def test_sec_source_fetch_all_malformed_returns_empty_list():
+    routes_all_bad = {
+        daily_index_url(date(2026, 10, 7)): fixture_text("sec_daily_index.idx"),
+        ACME_DIR + "primary_doc.xml": "<bad>1",
+        FUND_DIR + "primary_doc.xml": "not xml at all",
+        NORTH_DIR + "primary_doc.xml": "",
+    }
+    src = SecFormDSource(lookback_days=3, today=lambda: date(2026, 10, 8))
+    items = src.fetch(make_client(routes_all_bad))
+    assert items == []
+
+
 def test_polite_client_retries_then_succeeds_and_refuses_403():
     attempts = {"n": 0}
 

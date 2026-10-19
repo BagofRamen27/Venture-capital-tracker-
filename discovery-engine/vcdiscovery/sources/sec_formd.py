@@ -14,6 +14,7 @@ a completed venture round, a valuation, or that professional investors took part
 """
 from __future__ import annotations
 
+import logging
 import re
 import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta
@@ -22,6 +23,8 @@ from typing import Callable
 from ..http import PoliteClient, SourceUnavailable
 from ..text import parse_amount
 from .base import FormDItem, RelatedPerson
+
+logger = logging.getLogger("vcdiscovery.sources.sec_formd")
 
 ARCHIVES = "https://www.sec.gov/Archives/"
 INDEX_ROW_RE = re.compile(
@@ -109,6 +112,8 @@ def _date(value: str | None) -> date | None:
 def parse_form_d_xml(xml: bytes | str, meta: dict) -> FormDItem:
     """Parse a Form D `primary_doc.xml`. `meta` comes from the daily index row."""
     root = _strip_ns(ET.fromstring(xml))
+    if root.tag != "edgarSubmission":
+        raise ValueError(f"Expected edgarSubmission root, got {root.tag}")
     issuer = root.find("primaryIssuer")
     offering = root.find("offeringData")
     address = issuer.find("issuerAddress") if issuer is not None else None
@@ -251,5 +256,13 @@ class SecFormDSource:
             if self.skip_accession(row["accession_number"]):
                 continue
             resp = client.get(row["document_url"])
-            items.append(parse_form_d_xml(resp.content, row))
+            try:
+                items.append(parse_form_d_xml(resp.content, row))
+            except (ET.ParseError, ValueError) as exc:
+                logger.warning(
+                    "Skipping filing %s: malformed or unparseable XML (%s)",
+                    row.get("accession_number"),
+                    type(exc).__name__,
+                )
+                continue
         return items
