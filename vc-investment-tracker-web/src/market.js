@@ -24,7 +24,13 @@ export function normalizeCompany(c) {
 }
 
 export function normalizeDetail(j) {
-  const c = j.data;
+  const c = j?.data;
+  if (!c || typeof c !== 'object' || Array.isArray(c) || !c.slug || !c.name) {
+    throw Error('Invalid detail response');
+  }
+  if (c.fundingHistory !== undefined && c.fundingHistory !== null && !Array.isArray(c.fundingHistory)) {
+    throw Error('Invalid detail response');
+  }
   const rounds = (c.fundingHistory || []).map(r => ({
     date: text(r.eventDate, 40), stage: text(r.roundLabel, 80), amount: amount(r.amount), amountMeaning: text(r.amountMeaning, 60),
     status: text(r.eventStatus, 60), sources: (r.sourceUrls || []).map(safeURL).filter(Boolean).slice(0, 8),

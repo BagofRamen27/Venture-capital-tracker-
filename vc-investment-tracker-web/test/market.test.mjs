@@ -35,6 +35,184 @@ test('funding is not substituted for valuation or revenue; sources and date prec
   assert.equal(d.rounds[0].amount.value, 5000000); assert.equal(d.rounds[0].sources.length, 1);
 });
 
+test('normalizeDetail rejects invalid response wrappers with predictable error', () => {
+  const invalidWrappers = [
+    null,
+    undefined,
+    'primitive-string',
+    123,
+    true,
+    {},
+    { error: 'Not found' },
+    { data: null },
+    { data: [] },
+    { data: 'primitive-data' },
+    { data: 123 },
+    { data: true },
+  ];
+  for (const payload of invalidWrappers) {
+    assert.throws(
+      () => normalizeDetail(payload),
+      { message: 'Invalid detail response' }
+    );
+  }
+});
+
+test('normalizeDetail rejects invalid company identity (missing or empty slug and name)', () => {
+  const invalidIdentities = [
+    { data: { name: 'Acme' } },                // missing slug
+    { data: { slug: 'acme' } },                // missing name
+    { data: { slug: '', name: 'Acme' } },       // empty slug
+    { data: { slug: 'acme', name: '' } },       // empty name
+    { data: { slug: '', name: '' } },           // empty both
+  ];
+  for (const payload of invalidIdentities) {
+    assert.throws(
+      () => normalizeDetail(payload),
+      { message: 'Invalid detail response' }
+    );
+  }
+});
+
+test('normalizeDetail handles fundingHistory correctly: accepts missing, null, and valid array; rejects malformed non-array', () => {
+  // 1. Missing fundingHistory -> defaults to empty array
+  const missingFH = normalizeDetail({ data: { slug: 'acme', name: 'Acme' } });
+  assert.deepEqual(missingFH.rounds, []);
+  assert.equal(missingFH.roundsTotal, 0);
+
+  // 2. Null fundingHistory -> defaults to empty array
+  const nullFH = normalizeDetail({ data: { slug: 'acme', name: 'Acme', fundingHistory: null } });
+  assert.deepEqual(nullFH.rounds, []);
+  assert.equal(nullFH.roundsTotal, 0);
+
+  // 3. Valid fundingHistory array -> mapped correctly
+  const validFH = normalizeDetail({
+    data: {
+      slug: 'acme',
+      name: 'Acme',
+      fundingHistory: [
+        { eventDate: '2026-01-01', roundLabel: 'Seed', amount: { original: '1000000', currency: 'USD' } }
+      ]
+    }
+  });
+  assert.equal(validFH.rounds.length, 1);
+  assert.equal(validFH.rounds[0].stage, 'Seed');
+  assert.equal(validFH.rounds[0].amount.value, 1000000);
+
+  // 4. Present malformed non-array fundingHistory -> throws Invalid detail response
+  const malformedFH = [
+    { data: { slug: 'acme', name: 'Acme', fundingHistory: 'Series A' } },
+    { data: { slug: 'acme', name: 'Acme', fundingHistory: 12345 } },
+    { data: { slug: 'acme', name: 'Acme', fundingHistory: true } },
+    { data: { slug: 'acme', name: 'Acme', fundingHistory: { round: 'Seed' } } },
+  ];
+  for (const payload of malformedFH) {
+    assert.throws(
+      () => normalizeDetail(payload),
+      { message: 'Invalid detail response' }
+    );
+  }
+});
+
+test('normalizeDetail preserves output shape and mappings for valid minimal and full detail fixtures', () => {
+  // Minimal valid fixture
+  const min = normalizeDetail({ data: { slug: 'min-co', name: 'Min Co' } });
+  assert.equal(min.slug, 'min-co');
+  assert.equal(min.name, 'Min Co');
+  assert.equal(min.website, '');
+  assert.equal(min.industry, 'Other');
+  assert.equal(min.location, '');
+  assert.equal(min.stage, 'Not disclosed');
+  assert.equal(min.latestDate, '');
+  assert.equal(min.latestAmount, null);
+  assert.equal(min.source, 'StartupDB');
+  assert.equal(min.sourceURL, 'https://startupdb.com/organizations/min-co');
+  assert.equal(min.totalRaised, '');
+  assert.equal(min.lastSyncedAt, '');
+  assert.deepEqual(min.rounds, []);
+  assert.equal(min.roundsTotal, 0);
+  assert.equal(min.valuation, null);
+  assert.equal(min.revenue, null);
+  assert.equal(min.coverage, 'This feed supplies reported funding rounds, not structured valuations or revenue. Missing data is not zero.');
+  assert.deepEqual(min.disclosures, []);
+
+  // Full valid fixture
+  const full = normalizeDetail({
+    data: {
+      slug: 'full-co',
+      name: 'Full Company',
+      websiteUrl: 'https://full.test',
+      profile: {
+        sectorTags: [{ value: 'Enterprise AI' }],
+        headquartersLocation: 'San Francisco, CA',
+      },
+      latestFunding: { roundLabel: 'Series B', amount: { original: '25000000', currency: 'USD' } },
+      latestFundingDate: '2026-05-15',
+      fundingTotalRaised: '$35M',
+      lastSyncedAt: '2026-10-01T12:00:00Z',
+      fundingHistoryTotal: 2,
+      fundingHistory: [
+        {
+          eventDate: '2026-05-15',
+          roundLabel: 'Series B',
+          amount: { original: '25000000', currency: 'USD' },
+          amountMeaning: 'equity',
+          eventStatus: 'closed',
+          sourceUrls: ['https://news.test/round', 'javascript:alert(1)'],
+          participants: [{ name: 'Apex Ventures', role: 'lead' }],
+          attribution: 'Public filing',
+        },
+      ],
+      scopeDisclosures: ['Private data excluded', { complex: true }],
+    },
+  });
+  assert.equal(full.slug, 'full-co');
+  assert.equal(full.name, 'Full Company');
+  assert.equal(full.website, 'https://full.test/');
+  assert.equal(full.industry, 'Enterprise AI');
+  assert.equal(full.location, 'San Francisco, CA');
+  assert.equal(full.stage, 'Series B');
+  assert.equal(full.latestDate, '2026-05-15');
+  assert.equal(full.latestAmount.value, 25000000);
+  assert.equal(full.totalRaised, '$35M');
+  assert.equal(full.lastSyncedAt, '2026-10-01T12:00:00Z');
+  assert.equal(full.roundsTotal, 2);
+  assert.equal(full.rounds.length, 1);
+  assert.equal(full.rounds[0].stage, 'Series B');
+  assert.equal(full.rounds[0].sources.length, 1);
+  assert.equal(full.rounds[0].sources[0], 'https://news.test/round');
+  assert.deepEqual(full.rounds[0].investors, [{ name: 'Apex Ventures', role: 'lead' }]);
+  assert.equal(full.disclosures.length, 2);
+  assert.equal(full.disclosures[0], 'Private data excluded');
+  assert.equal(full.disclosures[1], '{"complex":true}');
+});
+
+test('fetchMarket captures predictable detail-validation error when endpoint returns malformed response', async () => {
+  const fetchImpl = async url => {
+    if (url.startsWith(API + '?')) {
+      return Response.json({
+        data: [{ slug: 'co-valid', name: 'Valid Co' }, { slug: 'co-malformed', name: 'Malformed Co' }],
+        pagination: { total: 2 },
+      });
+    }
+    if (url.endsWith('/co-valid')) {
+      return Response.json({ data: { slug: 'co-valid', name: 'Valid Co', fundingHistory: [] } });
+    }
+    if (url.endsWith('/co-malformed')) {
+      // Returns error object without data wrapper
+      return Response.json({ error: 'Organization not found' });
+    }
+    throw new Error('Unexpected URL: ' + url);
+  };
+
+  const res = await fetchMarket({ pages: 1, detailLimit: 2, fetchImpl, sleep: async () => {} });
+  assert.equal(res.companies.length, 2);
+  assert.ok(res.details['co-valid']);
+  assert.equal(res.details['co-malformed'], undefined);
+  assert.ok(res.errors.includes('co-malformed: Invalid detail response'));
+});
+
+
 test('daily fetch pages through StartupDB, collects details and skips failures', async () => {
   const calls = [];
   const fetchImpl = async url => {
